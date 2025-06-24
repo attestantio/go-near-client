@@ -13,10 +13,49 @@
 
 package spec
 
+import "time"
+
 // Status represents a status.
 type Status struct {
-	ChainID     string    `json:"chain_id"`
-	GenesisHash string    `json:"genesis_hash"`
-	SyncInfo    *SyncInfo `json:"sync_info"`
-	UptimeSec   float64   `json:"uptime_sec"`
+	ChainID               string      `json:"chain_id"`
+	GenesisHash           string      `json:"genesis_hash"`
+	LatestProtocolVersion int         `json:"latest_protocol_version"`
+	NodeKey               *string     `json:"node_key"`
+	NodePublicKey         string      `json:"node_public_key"`
+	ProtocolVersion       int         `json:"protocol_version"`
+	RPCAddr               string      `json:"rpc_addr"`
+	SyncInfo              SyncInfo    `json:"sync_info"`
+	UptimeSec             int64       `json:"uptime_sec"`
+	ValidatorAccountID    *string     `json:"validator_account_id"`
+	ValidatorPublicKey    *string     `json:"validator_public_key"`
+	Validators            []Validator `json:"validators"`
+	Version               Version     `json:"version"`
+}
+
+// SyncInfo contains information about the node's synchronization status
+type SyncInfo struct {
+	EarliestBlockHash   string    `json:"earliest_block_hash"`
+	EarliestBlockHeight int64     `json:"earliest_block_height"`
+	EarliestBlockTime   time.Time `json:"earliest_block_time"`
+	EpochID             string    `json:"epoch_id"`
+	EpochStartHeight    int64     `json:"epoch_start_height"`
+	LatestBlockHash     string    `json:"latest_block_hash"`
+	LatestBlockHeight   int64     `json:"latest_block_height"`
+	LatestBlockTime     time.Time `json:"latest_block_time"`
+	LatestStateRoot     string    `json:"latest_state_root"`
+	Syncing             bool      `json:"syncing"`
+}
+
+// Validator represents a validator in the network
+type Validator struct {
+	AccountID string `json:"account_id"`
+	IsSlashed bool   `json:"is_slashed"`
+}
+
+// Version contains information about the node's version
+type Version struct {
+	Build        string `json:"build"`
+	Commit       string `json:"commit"`
+	RustcVersion string `json:"rustc_version"`
+	Version      string `json:"version"`
 }

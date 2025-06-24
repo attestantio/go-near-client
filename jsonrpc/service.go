@@ -276,7 +276,7 @@ func (*Service) fetchStaticValues(_ context.Context) error {
 
 // Name provides the name of the service.
 func (*Service) Name() string {
-	return "json-rpc"
+	return "jsonrpc"
 }
 
 // Address provides the address for the connection.

@@ -38,13 +38,26 @@ func (s *Service) Block(ctx context.Context,
 		return nil, client.ErrNoOptions
 	}
 
-	if opts.Finality == "" {
+	var args map[string]any{}
+
+
+	switch {
+	case opts.Finality != "":
+		args = map[string]any{
+			"finality": opts.Finality,
+		}
+	case opts.BlockID != 0:
+		args = map[string]any{
+			"block_id": opts.BlockID,
+		}
+	case opts.Hash != "":
+		args = map[string]any{
+			"hash": opts.Hash,
+		}
+	default:
 		return nil, client.ErrInvalidOptions
 	}
 
-	args := map[string]any{
-		"finality": opts.Finality,
-	}
 	data, err := s.makeRPCCall(ctx, "block", args)
 	if err != nil {
 		return nil, parseJSONRPCError(err)

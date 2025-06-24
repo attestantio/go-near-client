@@ -13,7 +13,6 @@
 
 package spec
 
-// Block represents a block.
 // Block represents a NEAR block with its header and chunks.
 type Block struct {
 	Author string        `json:"author"`
