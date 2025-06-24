@@ -1,8 +1,11 @@
 module github.com/attestantio/go-near-client
 
-go 1.24.4
+go 1.23.0
+
+toolchain go1.23.2
 
 require (
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.21.0
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.10.0

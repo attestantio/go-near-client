@@ -96,5 +96,5 @@ func TestInterfaces(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	assert.Implements(t, (*client.CallProvider)(nil), s)
+	assert.Implements(t, (*client.AccountProvider)(nil), s)
 }

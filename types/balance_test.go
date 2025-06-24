@@ -21,12 +21,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFieldElementUnmarshalJSON(t *testing.T) {
+func TestBalanceUnmarshalJSON(t *testing.T) {
 	tests := []struct {
-		name   string
-		input  []byte
-		output []byte
-		err    string
+		name            string
+		input           []byte
+		output          []byte
+		outputNear      uint64
+		outputMilliNear uint64
+		err             string
 	}{
 		{
 			name:  "Empty",
@@ -34,32 +36,45 @@ func TestFieldElementUnmarshalJSON(t *testing.T) {
 			err:   "unexpected end of JSON input",
 		},
 		{
-			name:  "Minimal",
-			input: []byte(`"0x1"`),
+			name:            "FullNEAR",
+			input:           []byte(`"30246689787546400881670512075"`),
+			output:          []byte(`"30246689787546400881670512075"`),
+			outputNear:      uint64(30246),
+			outputMilliNear: uint64(6897),
 		},
 		{
-			name:   "Short",
-			input:  []byte(`"0x01"`),
-			output: []byte(`"0x1"`),
+			name:            "FullNEAR",
+			input:           []byte(`"30246689787546400881670512075"`),
+			output:          []byte(`"30246689787546400881670512075"`),
+			outputNear:      uint64(30246),
+			outputMilliNear: uint64(6897),
 		},
 		{
-			name:   "NotTruncated",
-			input:  []byte(`"0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"`),
-			output: []byte(`"0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"`),
+			name:            "MilliNEAR",
+			input:           []byte(`"689787546400881670512075"`),
+			output:          []byte(`"689787546400881670512075"`),
+			outputNear:      uint64(0),
+			outputMilliNear: uint64(6897),
 		},
 		{
-			name:  "Truncated",
-			input: []byte(`"0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"`),
+			name:            "yoctoNEAR",
+			input:           []byte(`"87546400881670512075"`),
+			output:          []byte(`"87546400881670512075"`),
+			outputNear:      uint64(0),
+			outputMilliNear: uint64(0),
 		},
 		{
-			name:  "Full",
-			input: []byte(`"0xff102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"`),
+			name:            "small yoctoNEAR",
+			input:           []byte(`"75"`),
+			output:          []byte(`"75"`),
+			outputNear:      uint64(0),
+			outputMilliNear: uint64(0),
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			var res types.FieldElement
+			var res types.Balance
 			err := json.Unmarshal(test.input, &res)
 			if test.err != "" {
 				require.EqualError(t, err, test.err)
@@ -73,6 +88,8 @@ func TestFieldElementUnmarshalJSON(t *testing.T) {
 				} else {
 					require.Equal(t, string(test.output), string(rt))
 					require.Equal(t, string(test.output), `"`+res.String()+`"`)
+					require.Equal(t, test.outputNear, res.NEAR)
+					require.Equal(t, test.outputMilliNear, res.MilliNEAR)
 				}
 			}
 		})

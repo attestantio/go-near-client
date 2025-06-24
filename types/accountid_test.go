@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddressUnmarshalJSON(t *testing.T) {
+func TestAccountIDUnmarshalJSON(t *testing.T) {
 	tests := []struct {
 		name   string
 		input  []byte
@@ -34,32 +34,40 @@ func TestAddressUnmarshalJSON(t *testing.T) {
 			err:   "unexpected end of JSON input",
 		},
 		{
-			name:  "Minimal",
-			input: []byte(`"0x1"`),
+			name:  "Short",
+			input: []byte(`"1"`),
+			err:   "account id too short",
 		},
 		{
-			name:   "Short",
-			input:  []byte(`"0x01"`),
-			output: []byte(`"0x1"`),
+			name:  "Long",
+			input: []byte(`"01234567890123456789012345678901234567890123456789012345678901234"`),
+			err:   "account id too long",
 		},
 		{
-			name:   "NotTruncated",
-			input:  []byte(`"0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"`),
-			output: []byte(`"0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"`),
+			name:   "Minimal",
+			input:  []byte(`"7a"`),
+			output: []byte(`"7a"`),
 		},
 		{
-			name:  "Truncated",
-			input: []byte(`"0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"`),
+			name:   "HexString",
+			input:  []byte(`"658a1905ba0ce2eb5c2db802f8adc2c05c371c96174b2b90a04d6f2aaada1391"`),
+			output: []byte(`"658a1905ba0ce2eb5c2db802f8adc2c05c371c96174b2b90a04d6f2aaada1391"`),
 		},
 		{
-			name:  "Full",
-			input: []byte(`"0xff102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"`),
+			name:   "FQDN",
+			input:  []byte(`"apy-tracer.eco.linear-protocol.near"`),
+			output: []byte(`"apy-tracer.eco.linear-protocol.near"`),
+		},
+		{
+			name:   "ShortDomain",
+			input:  []byte(`"meta-pool.near"`),
+			output: []byte(`"meta-pool.near"`),
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			var res types.Address
+			var res types.AccountID
 			err := json.Unmarshal(test.input, &res)
 			if test.err != "" {
 				require.EqualError(t, err, test.err)

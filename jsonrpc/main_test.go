@@ -11,69 +11,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package jsonrpc_test
+package jsonrpc
 
 import (
-	"encoding/hex"
-	"encoding/json"
-	"os"
-	"strings"
-	"testing"
-	"time"
-
-	"github.com/attestantio/go-near-client/types"
 	"github.com/rs/zerolog"
+	"os"
+	"testing"
 )
-
-// timeout for tests.
-var timeout = 60 * time.Second
 
 func TestMain(m *testing.M) {
 	zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	if os.Getenv("JSONRPC_ADDRESS") != "" {
 		os.Exit(m.Run())
 	}
-}
-
-// strToHash is a helper to create a hash given a string representation.
-func strToHash(input string) types.Hash {
-	bytes, err := hex.DecodeString(strings.TrimPrefix(input, "0x"))
-	if err != nil {
-		panic(err)
-	}
-
-	var res types.Hash
-	copy(res[:], bytes)
-
-	return res
-}
-
-// strToAddress is a helper to create an address given a string representation.
-func strToAddress(input string) types.Address {
-	var res types.Address
-	if err := json.Unmarshal([]byte(`"`+input+`"`), &res); err != nil {
-		panic(err)
-	}
-
-	return res
-}
-
-// strToFieldElement is a helper to create a field element given a string representation.
-func strToFieldElement(input string) types.FieldElement {
-	var res types.FieldElement
-	if err := json.Unmarshal([]byte(`"`+input+`"`), &res); err != nil {
-		panic(err)
-	}
-
-	return res
-}
-
-// strToBytes is a helper to create a byte slice given a string representation.
-func strToBytes(input string) []byte {
-	bytes, err := hex.DecodeString(strings.TrimPrefix(input, "0x"))
-	if err != nil {
-		panic(err)
-	}
-
-	return bytes
 }

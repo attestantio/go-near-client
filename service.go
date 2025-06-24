@@ -15,8 +15,9 @@ package client
 
 import (
 	"context"
+
 	"github.com/attestantio/go-near-client/api"
-	"github.com/attestantio/go-near-client/types"
+	"github.com/attestantio/go-near-client/spec"
 )
 
 // Service is the service providing a connection to a NEAR node.
@@ -28,13 +29,13 @@ type Service interface {
 	Address() string
 }
 
-// CallProvider is the interface for making calls to the client.
-type CallProvider interface {
-	// Call makes a call to the client.
-	Call(ctx context.Context,
-		opts *api.CallOpts,
+// AccountProvider is the interface for making calls to the client.
+type AccountProvider interface {
+	// Account makes a call to the client.
+	Account(ctx context.Context,
+		opts *api.AccountOpts,
 	) (
-		*api.Response[[]types.FieldElement],
+		*api.Response[*spec.Account],
 		error,
 	)
 }

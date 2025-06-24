@@ -53,23 +53,23 @@ func registerPrometheusMetrics(_ context.Context) error {
 	return nil
 }
 
-func (s *Service) monitorState(state string) {
-	if stateMetric == nil {
-		return
-	}
-
-	switch state {
-	case "synced":
-		stateMetric.WithLabelValues(s.address, "synced").Set(1)
-		stateMetric.WithLabelValues(s.address, "active").Set(0)
-		stateMetric.WithLabelValues(s.address, "inactive").Set(0)
-	case "active":
-		stateMetric.WithLabelValues(s.address, "synced").Set(0)
-		stateMetric.WithLabelValues(s.address, "active").Set(1)
-		stateMetric.WithLabelValues(s.address, "inactive").Set(0)
-	case "inactive":
-		stateMetric.WithLabelValues(s.address, "synced").Set(0)
-		stateMetric.WithLabelValues(s.address, "active").Set(0)
-		stateMetric.WithLabelValues(s.address, "inactive").Set(1)
-	}
-}
+// func (s *Service) monitorState(state string) {
+// 	if stateMetric == nil {
+// 		return
+// 	}
+//
+// 	switch state {
+// 	case "synced":
+// 		stateMetric.WithLabelValues(s.address, "synced").Set(1)
+// 		stateMetric.WithLabelValues(s.address, "active").Set(0)
+// 		stateMetric.WithLabelValues(s.address, "inactive").Set(0)
+// 	case "active":
+// 		stateMetric.WithLabelValues(s.address, "synced").Set(0)
+// 		stateMetric.WithLabelValues(s.address, "active").Set(1)
+// 		stateMetric.WithLabelValues(s.address, "inactive").Set(0)
+// 	case "inactive":
+// 		stateMetric.WithLabelValues(s.address, "synced").Set(0)
+// 		stateMetric.WithLabelValues(s.address, "active").Set(0)
+// 		stateMetric.WithLabelValues(s.address, "inactive").Set(1)
+// 	}
+// }

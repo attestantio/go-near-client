@@ -13,22 +13,12 @@
 
 package api
 
-import "github.com/attestantio/go-near-client/types"
-
-// CallOpts are the options for transaction calls.
-type CallOpts struct {
+// AccountOpts are the options for account calls.
+type AccountOpts struct {
 	Common CommonOpts
 
-	// Block is the block for which the data is obtained.
-	// It can be a block number, block hash, or one of the special values "latest" or "pending".
-	Block types.BlockID
-
-	// Contact is the contract for which the data is obtained.
-	Contract types.Address
-
-	// EntryPointSelector defines the entry point for the call.
-	EntryPointSelector types.FieldElement
-
-	// Calldata is the data passed to the call.
-	Calldata []types.FieldElement
+	// AccountID is the account ID to query.
+	AccountID string
+	// ContractID is the contract ID use for the query.
+	ContractID string
 }

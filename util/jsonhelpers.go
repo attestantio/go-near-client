@@ -17,7 +17,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/attestantio/go-near-client/types"
 	"math/big"
 	"strconv"
 	"strings"
@@ -101,23 +100,6 @@ func MarshalNullableByteArray(input []byte) string {
 	return fmt.Sprintf("%#x", input)
 }
 
-// StrToAddress turns a string in to an address.
-// The string representation can be short, in which case it is treated
-// as if it has leading 0s.
-func StrToAddress(name string, input string) (types.Address, error) {
-	var res types.Address
-	if input == "" {
-		return res, fmt.Errorf("%s missing", name)
-	}
-	val, err := hex.DecodeString(PreUnmarshalHexString(input))
-	if err != nil {
-		return res, errors.Join(fmt.Errorf("%s invalid", name), err)
-	}
-	copy(res[len(res)-len(val):], val)
-
-	return res, nil
-}
-
 // StrToBigInt turns a string in to a big.Int.
 func StrToBigInt(name string, input string) (*big.Int, error) {
 	if input == "" {
@@ -140,40 +122,6 @@ func StrToByteArray(name string, input string) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Join(fmt.Errorf("%s invalid", name), err)
 	}
-
-	return res, nil
-}
-
-// StrToHash turns a string in to a hash.
-// The string representation can be short, in which case it is treated
-// as if it has leading 0s.
-func StrToHash(name string, input string) (types.Hash, error) {
-	var res types.Hash
-	if input == "" {
-		return res, fmt.Errorf("%s missing", name)
-	}
-	val, err := hex.DecodeString(PreUnmarshalHexString(input))
-	if err != nil {
-		return res, errors.Join(fmt.Errorf("%s invalid", name), err)
-	}
-	copy(res[len(res)-len(val):], val)
-
-	return res, nil
-}
-
-// StrToRoot turns a string in to a root.
-// The string representation can be short, in which case it is treated
-// as if it has leading 0s.
-func StrToRoot(name string, input string) (types.Root, error) {
-	var res types.Root
-	if input == "" {
-		return res, fmt.Errorf("%s missing", name)
-	}
-	val, err := hex.DecodeString(PreUnmarshalHexString(input))
-	if err != nil {
-		return res, errors.Join(fmt.Errorf("%s invalid", name), err)
-	}
-	copy(res[len(res)-len(val):], val)
 
 	return res, nil
 }

@@ -11,9 +11,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package api
+package spec
 
-// SyncingOpts are the options for obtaining sync state.
-type SyncingOpts struct {
-	Common CommonOpts
+import "github.com/attestantio/go-near-client/types"
+
+// Account returns an account overview.
+type Account struct {
+	AccountID       types.AccountID `json:"account_id"`
+	UnstakedBalance types.Balance   `json:"unstaked_balance"`
+	StakedBalance   types.Balance   `json:"staked_balance"`
+	CanWithdraw     bool            `json:"can_withdraw"`
 }
