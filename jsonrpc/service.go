@@ -42,6 +42,7 @@ type Service struct {
 	address          string
 	webSocketAddress string
 	client           jsonrpc.RPCClient
+	httpClient       *http.Client
 	timeout          time.Duration
 	// Endpoint support.
 	pingSem          *semaphore.Weighted
@@ -112,6 +113,7 @@ func New(ctx context.Context, params ...Parameter) (*Service, error) {
 		log:              log,
 		base:             base,
 		client:           rpcClient,
+		httpClient:       httpClient,
 		address:          address.String(),
 		webSocketAddress: webSocketAddress,
 		timeout:          parameters.timeout,
@@ -176,13 +178,19 @@ func (s *Service) makeRPCQueryCall(method, contractID string, args map[string]an
 	params := map[string]any{
 		"request_type": "call_function",
 		"finality":     "final",
-		"account_id":   contractID,
 		"method_name":  method,
 		"args_base64":  base64.StdEncoding.EncodeToString(argsBytes),
 	}
 
+	if contractID != "" {
+		params["account_id"] = contractID
+	}
+
 	data := &response{}
 	err = s.client.CallFor(data, "query", params)
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to call json rpc"), err)
+	}
 
 	return data, err
 }

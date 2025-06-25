@@ -40,6 +40,17 @@ type AccountProvider interface {
 	)
 }
 
+// BlockProvider is the interface for providing block details.
+type BlockProvider interface {
+	// Block returns the block.
+	Block(ctx context.Context,
+		opts *api.BlockOpts,
+	) (
+		*api.Response[*spec.Block],
+		error,
+	)
+}
+
 // StatusProvider is the interface for providing status.
 type StatusProvider interface {
 	// Status returns the status.
