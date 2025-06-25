@@ -29,13 +29,35 @@ type Service interface {
 	Address() string
 }
 
-// AccountProvider is the interface for making calls to the client.
+// AccountProvider is the interface for providing account details.
 type AccountProvider interface {
-	// Account makes a call to the client.
+	// Account returns the account.
 	Account(ctx context.Context,
 		opts *api.AccountOpts,
 	) (
 		*api.Response[*spec.Account],
+		error,
+	)
+}
+
+// StatusProvider is the interface for providing status.
+type StatusProvider interface {
+	// Status returns the status.
+	Status(ctx context.Context,
+		opts *api.StatusOpts,
+	) (
+		*api.Response[*spec.Status],
+		error,
+	)
+}
+
+// SyncProvider is the interface for providing sync status.
+type SyncProvider interface {
+	// Syncing returns the status.
+	Syncing(ctx context.Context,
+		opts *api.SyncingOpts,
+	) (
+		*api.Response[*spec.SyncInfo],
 		error,
 	)
 }

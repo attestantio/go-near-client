@@ -15,6 +15,7 @@ package jsonrpc
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,6 +28,7 @@ import (
 	"time"
 
 	client "github.com/attestantio/go-near-client"
+	"github.com/attestantio/go-near-client/api"
 	"github.com/rs/zerolog"
 	zerologger "github.com/rs/zerolog/log"
 	"github.com/ybbus/jsonrpc/v2"
@@ -162,6 +164,29 @@ func (s *Service) periodicUpdateConnectionState(ctx context.Context) {
 	}(s, ctx)
 }
 
+type response struct {
+	Result []byte `json:"result"`
+}
+
+func (s *Service) makeRPCQueryCall(method, contractID string, args map[string]any) (*response, error) {
+	argsBytes, err := json.Marshal(args)
+	if err != nil {
+		return nil, errors.Join(fmt.Errorf("failed to marshal %s args to bytes", method), client.ErrInvalidOptions)
+	}
+	params := map[string]any{
+		"request_type": "call_function",
+		"finality":     "final",
+		"account_id":   contractID,
+		"method_name":  method,
+		"args_base64":  base64.StdEncoding.EncodeToString(argsBytes),
+	}
+
+	data := &response{}
+	err = s.client.CallFor(data, "query", params)
+
+	return data, err
+}
+
 // parseJSONRPCError potentially adds more information to a JSONRPC error.
 func parseJSONRPCError(err error) error {
 	var jsonrpcErr *jsonrpc.RPCError
@@ -182,74 +207,58 @@ func parseJSONRPCError(err error) error {
 // CheckConnectionState checks the connection state for the client, potentially updating
 // its activation and sync states.
 // This will call hooks supplied when creating the client if the state changes.
-// func (s *Service) CheckConnectionState(ctx context.Context) {
-// 	log := zerolog.Ctx(ctx)
-//
-// 	s.connectionMu.Lock()
-// 	wasActive := s.connectionActive
-// 	wasSynced := s.connectionSynced
-// 	s.connectionMu.Unlock()
-//
-// 	var active bool
-// 	var synced bool
-//
-// 	acquired := s.pingSem.TryAcquire(1)
-// 	if !acquired {
-// 		// Means there is another ping running, just use current info.
-// 		active = wasActive
-// 		synced = wasSynced
-// 	} else {
-// 		response, err := s.Syncing(ctx, &api.SyncingOpts{})
-// 		if err != nil {
-// 			log.Debug().Err(err).Msg("Failed to obtain sync state from node")
-// 			active = false
-// 			synced = false
-// 		} else {
-// 			active = true
-// 			// synced = !response.Data.Syncing
-// 		}
-// 		s.pingSem.Release(1)
-// 	}
-//
-// 	// if !wasActive && active {
-// 	// 	// Switched from not active to active.
-// 	// }
-//
-// 	// if wasActive && !active {
-// 	// 	// Switched from active to not active.
-// 	// }
-//
-// 	// if !wasSynced && synced {
-// 	// 	// Switched from not synced to synced.
-// 	// }
-//
-// 	// if wasSynced && !synced {
-// 	// 	// Switched from synced to not synced.
-// 	// }
-//
-// 	if (wasActive != active) || (wasSynced != synced) {
-// 		log.Trace().
-// 			Bool("was_active", wasActive).
-// 			Bool("active", active).
-// 			Bool("was_synced", wasSynced).
-// 			Bool("synced", synced).
-// 			Msg("Updated connection state")
-// 	}
-//
-// 	s.connectionMu.Lock()
-// 	s.connectionActive = active
-// 	s.connectionSynced = synced
-// 	s.connectionMu.Unlock()
-//
-// 	switch {
-// 	case synced:
-// 		s.monitorState("synced")
-// 	case active:
-// 		s.monitorState("active")
-// 	default:
-// 		s.monitorState("inactive")
-// 	}
-// }
+func (s *Service) CheckConnectionState(ctx context.Context) {
+	log := zerolog.Ctx(ctx)
+
+	s.connectionMu.Lock()
+	wasActive := s.connectionActive
+	wasSynced := s.connectionSynced
+	s.connectionMu.Unlock()
+
+	var active bool
+	var synced bool
+
+	acquired := s.pingSem.TryAcquire(1)
+	if !acquired {
+		// Means there is another ping running, just use current info.
+		active = wasActive
+		synced = wasSynced
+	} else {
+		response, err := s.Syncing(ctx, &api.SyncingOpts{})
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to obtain sync state from node")
+			active = false
+			synced = false
+		} else {
+			active = true
+			synced = !response.Data.Syncing
+		}
+		s.pingSem.Release(1)
+	}
+
+	if (wasActive != active) || (wasSynced != synced) {
+		log.Trace().
+			Bool("was_active", wasActive).
+			Bool("active", active).
+			Bool("was_synced", wasSynced).
+			Bool("synced", synced).
+			Msg("Updated connection state")
+	}
+
+	s.connectionMu.Lock()
+	s.connectionActive = active
+	s.connectionSynced = synced
+	s.connectionMu.Unlock()
+
+	switch {
+	case synced:
+		s.monitorState("synced")
+	case active:
+		s.monitorState("active")
+	default:
+		s.monitorState("inactive")
+	}
+}
 
 // fetchStaticValues fetches values that never change.
 // This caches the values, avoiding future API calls.
@@ -303,26 +312,26 @@ func (s *Service) IsSynced() bool {
 //
 // 	return nil
 // }
-//
-// func (s *Service) assertIsSynced(ctx context.Context) error {
-// 	synced := s.IsSynced()
-// 	if synced {
-// 		return nil
-// 	}
-//
-// 	s.CheckConnectionState(ctx)
-// 	active := s.IsActive()
-// 	if !active {
-// 		return client.ErrNotActive
-// 	}
-//
-// 	synced = s.IsSynced()
-// 	if !synced {
-// 		return client.ErrNotSynced
-// 	}
-//
-// 	return nil
-// }
+
+func (s *Service) assertIsSynced(ctx context.Context) error {
+	synced := s.IsSynced()
+	if synced {
+		return nil
+	}
+
+	s.CheckConnectionState(ctx)
+	active := s.IsActive()
+	if !active {
+		return client.ErrNotActive
+	}
+
+	synced = s.IsSynced()
+	if !synced {
+		return client.ErrNotSynced
+	}
+
+	return nil
+}
 
 //nolint:revive
 func parseAddress(address string) (*url.URL, *url.URL, error) {
