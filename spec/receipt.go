@@ -13,7 +13,7 @@
 
 package spec
 
-// Receipt represents a NEAR receipt
+// Receipt represents a NEAR receipt.
 type Receipt struct {
 	PredecessorID string      `json:"predecessor_id"`
 	Priority      int         `json:"priority"`
@@ -22,19 +22,19 @@ type Receipt struct {
 	ReceiverID    string      `json:"receiver_id"`
 }
 
-// ReceiptData represents the actual receipt data
+// ReceiptData represents the actual receipt data.
 type ReceiptData struct {
 	Action *ReceiptAction `json:"Action,omitempty"`
 	// Add other receipt types as needed
 }
 
-// ReceiptAction represents an action receipt
+// ReceiptAction represents an action receipt.
 type ReceiptAction struct {
-	Actions             []Action      `json:"actions"`
-	GasPrice            string        `json:"gas_price"`
-	InputDataIDs        []string      `json:"input_data_ids"`
-	IsPromiseYield      bool          `json:"is_promise_yield"`
-	OutputDataReceivers []interface{} `json:"output_data_receivers"`
-	SignerID            string        `json:"signer_id"`
-	SignerPublicKey     string        `json:"signer_public_key"`
+	Actions             []Action `json:"actions"`
+	GasPrice            string   `json:"gas_price"`
+	InputDataIDs        []string `json:"input_data_ids"`
+	IsPromiseYield      bool     `json:"is_promise_yield"`
+	OutputDataReceivers []any    `json:"output_data_receivers"`
+	SignerID            string   `json:"signer_id"`
+	SignerPublicKey     string   `json:"signer_public_key"`
 }

@@ -3,7 +3,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,14 +14,14 @@
 package spec
 
 // Block represents a block.
-// Block represents a NEAR block with its header and chunks
+// Block represents a NEAR block with its header and chunks.
 type Block struct {
 	Author string        `json:"author"`
 	Chunks []ChunkHeader `json:"chunks"`
 	Header BlockHeader   `json:"header"`
 }
 
-// BlockHeader contains metadata about a block
+// BlockHeader contains metadata about a block.
 type BlockHeader struct {
 	Approvals             []*string           `json:"approvals"`
 	BlockBodyHash         string              `json:"block_body_hash"`

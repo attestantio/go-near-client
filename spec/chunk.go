@@ -13,7 +13,7 @@
 
 package spec
 
-// Chunk represents a NEAR chunk with its header, receipts, and transactions
+// Chunk represents a NEAR chunk with its header, receipts, and transactions.
 type Chunk struct {
 	Author       string        `json:"author"`
 	Header       ChunkHeader   `json:"header"`
@@ -21,7 +21,7 @@ type Chunk struct {
 	Transactions []Transaction `json:"transactions"`
 }
 
-// ChunkHeader contains metadata about a chunk
+// ChunkHeader contains metadata about a chunk.
 type ChunkHeader struct {
 	BalanceBurnt         string              `json:"balance_burnt"`
 	BandwidthRequests    *BandwidthRequests  `json:"bandwidth_requests"`
@@ -45,7 +45,7 @@ type ChunkHeader struct {
 	ValidatorReward      string              `json:"validator_reward"`
 }
 
-// ValidatorProposal represents a validator proposal
+// ValidatorProposal represents a validator proposal.
 type ValidatorProposal struct {
 	AccountID                   string `json:"account_id"`
 	PublicKey                   string `json:"public_key"`
@@ -53,7 +53,7 @@ type ValidatorProposal struct {
 	ValidatorStakeStructVersion string `json:"validator_stake_struct_version"`
 }
 
-// Transaction represents a NEAR transaction
+// Transaction represents a NEAR transaction.
 type Transaction struct {
 	Actions     []Action `json:"actions"`
 	Hash        string   `json:"hash"`
@@ -65,17 +65,17 @@ type Transaction struct {
 	SignerID    string   `json:"signer_id"`
 }
 
-// BandwidthRequests represents bandwidth requests information
+// BandwidthRequests represents bandwidth requests information.
 type BandwidthRequests struct {
 	V1 BandwidthRequestsV1 `json:"V1"`
 }
 
-// BandwidthRequestsV1 represents V1 bandwidth requests
+// BandwidthRequestsV1 represents V1 bandwidth requests.
 type BandwidthRequestsV1 struct {
-	Requests []interface{} `json:"requests"`
+	Requests []any `json:"requests"`
 }
 
-// CongestionInfo represents congestion information for a chunk
+// CongestionInfo represents congestion information for a chunk.
 type CongestionInfo struct {
 	AllowedShard        int    `json:"allowed_shard"`
 	BufferedReceiptsGas string `json:"buffered_receipts_gas"`
