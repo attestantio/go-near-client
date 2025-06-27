@@ -11,14 +11,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package spec
+package api
 
-import "github.com/attestantio/go-near-client/types"
-
-// Account represents an account overview.
-type Account struct {
-	AccountID       types.AccountID `json:"account_id"`
-	UnstakedBalance types.Balance   `json:"unstaked_balance"`
-	StakedBalance   types.Balance   `json:"staked_balance"`
-	CanWithdraw     bool            `json:"can_withdraw"`
+// SyncingOpts are the options for syncinfo.
+type SyncingOpts struct {
+	Common CommonOpts
 }

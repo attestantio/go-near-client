@@ -11,14 +11,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package spec
+package api
 
-import "github.com/attestantio/go-near-client/types"
+// BlockOpts are the options for block calls.
+type BlockOpts struct {
+	Common CommonOpts
 
-// Account represents an account overview.
-type Account struct {
-	AccountID       types.AccountID `json:"account_id"`
-	UnstakedBalance types.Balance   `json:"unstaked_balance"`
-	StakedBalance   types.Balance   `json:"staked_balance"`
-	CanWithdraw     bool            `json:"can_withdraw"`
+	// Finality gets a block by finality.
+	Finality string
+	// ContractID is the contract ID use for the query.
+	ContractID string
 }

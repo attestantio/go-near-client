@@ -20,5 +20,8 @@ coverage.html
 # Intellij
 .idea/
 
+# Makefile
+Makefile
+
 # Local TODO
 TODO.md

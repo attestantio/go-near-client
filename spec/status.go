@@ -13,12 +13,10 @@
 
 package spec
 
-import "github.com/attestantio/go-near-client/types"
-
-// Account represents an account overview.
-type Account struct {
-	AccountID       types.AccountID `json:"account_id"`
-	UnstakedBalance types.Balance   `json:"unstaked_balance"`
-	StakedBalance   types.Balance   `json:"staked_balance"`
-	CanWithdraw     bool            `json:"can_withdraw"`
+// Status represents a status.
+type Status struct {
+	ChainID     string    `json:"chain_id"`
+	GenesisHash string    `json:"genesis_hash"`
+	SyncInfo    *SyncInfo `json:"sync_info"`
+	UptimeSec   float64   `json:"uptime_sec"`
 }

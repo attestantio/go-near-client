@@ -15,19 +15,17 @@ package jsonrpc
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 
 	client "github.com/attestantio/go-near-client"
 	"github.com/attestantio/go-near-client/api"
 	"github.com/attestantio/go-near-client/spec"
 )
 
-// Account retrieves account info from the client.
-func (s *Service) Account(ctx context.Context,
-	opts *api.AccountOpts,
+// Status returns the status.
+func (s *Service) Status(ctx context.Context,
+	opts *api.StatusOpts,
 ) (
-	*api.Response[*spec.Account],
+	*api.Response[*spec.Status],
 	error,
 ) {
 	if err := s.assertIsSynced(ctx); err != nil {
@@ -37,28 +35,15 @@ func (s *Service) Account(ctx context.Context,
 	if opts == nil {
 		return nil, client.ErrNoOptions
 	}
-	if opts.AccountID == "" {
-		return nil, errors.Join(errors.New("no account id specified"), client.ErrInvalidOptions)
-	}
-	if opts.ContractID == "" {
-		return nil, errors.Join(errors.New("no contract id specified"), client.ErrInvalidOptions)
-	}
 
-	args := map[string]any{
-		"account_id": opts.AccountID,
-	}
-	data, err := s.makeRPCQueryCall("get_account", opts.ContractID, args)
+	status := &spec.Status{}
+	err := s.client.CallFor(status, "status", nil)
 	if err != nil {
 		return nil, parseJSONRPCError(err)
 	}
-	account := &spec.Account{}
-	err = json.Unmarshal(data.Result, account)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to unmarshal result to account"), client.ErrInconsistentResult)
-	}
 
-	return &api.Response[*spec.Account]{
-		Data:     account,
+	return &api.Response[*spec.Status]{
+		Data:     status,
 		Metadata: map[string]any{},
 	}, nil
 }

@@ -23,11 +23,11 @@ import (
 	"github.com/attestantio/go-near-client/spec"
 )
 
-// Account retrieves account info from the client.
-func (s *Service) Account(ctx context.Context,
-	opts *api.AccountOpts,
+// Block returns the block.
+func (s *Service) Block(ctx context.Context,
+	opts *api.BlockOpts,
 ) (
-	*api.Response[*spec.Account],
+	*api.Response[*spec.Block],
 	error,
 ) {
 	if err := s.assertIsSynced(ctx); err != nil {
@@ -37,28 +37,27 @@ func (s *Service) Account(ctx context.Context,
 	if opts == nil {
 		return nil, client.ErrNoOptions
 	}
-	if opts.AccountID == "" {
-		return nil, errors.Join(errors.New("no account id specified"), client.ErrInvalidOptions)
-	}
-	if opts.ContractID == "" {
-		return nil, errors.Join(errors.New("no contract id specified"), client.ErrInvalidOptions)
+
+	if opts.Finality == "" {
+		return nil, client.ErrInvalidOptions
 	}
 
 	args := map[string]any{
-		"account_id": opts.AccountID,
+		"finality": opts.Finality,
 	}
-	data, err := s.makeRPCQueryCall("get_account", opts.ContractID, args)
+	data, err := s.makeRPCCall(ctx, "block", args)
 	if err != nil {
 		return nil, parseJSONRPCError(err)
 	}
-	account := &spec.Account{}
-	err = json.Unmarshal(data.Result, account)
+
+	block := &spec.Block{}
+	err = json.Unmarshal(data, block)
 	if err != nil {
-		return nil, errors.Join(errors.New("failed to unmarshal result to account"), client.ErrInconsistentResult)
+		return nil, errors.Join(errors.New("failed to unmarshal result to block"), client.ErrInconsistentResult)
 	}
 
-	return &api.Response[*spec.Account]{
-		Data:     account,
+	return &api.Response[*spec.Block]{
+		Data:     block,
 		Metadata: map[string]any{},
 	}, nil
 }
