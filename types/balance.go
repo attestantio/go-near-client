@@ -14,27 +14,81 @@
 package types
 
 import (
-	"errors"
-	"fmt"
-	"strconv"
+	"encoding/json"
+	"math/big"
 	"strings"
+
+	"github.com/pkg/errors"
+)
+
+const (
+	yoctoNEARPrecision = 24
+	milliNEARPrecision = 4
 )
 
 // Balance is a NEAR balance.
 type Balance struct {
-	NEAR      uint64
-	MilliNEAR uint64
-	Raw       []byte
+	Balance *big.Int
 }
 
 // String returns the string representation of the balance.
 func (b *Balance) String() string {
-	return strings.ReplaceAll(string(b.Raw), `"`, "")
+	return b.Balance.String()
 }
 
-// PrintNEAR returns the string representation of NEAR.MilliNEAR.
-func (b *Balance) PrintNEAR() string {
-	return fmt.Sprintf(`%d.%d`, b.NEAR, b.MilliNEAR)
+// Add returns the addition of the two balances.
+func (b *Balance) Add(other *Balance) *Balance {
+	return &Balance{Balance: new(big.Int).Add(b.Balance, other.Balance)}
+}
+
+// Sub subtracts the provided balance from this balance.
+func (b *Balance) Sub(other *Balance) *Balance {
+	return &Balance{Balance: new(big.Int).Sub(b.Balance, other.Balance)}
+}
+
+// Mul multiplies the two balances together.
+func (b *Balance) Mul(other *Balance) *Balance {
+	return &Balance{Balance: new(big.Int).Mul(b.Balance, other.Balance)}
+}
+
+// Div implements Euclidean division (unlike Go). Divides this balance by the other balance.
+func (b *Balance) Div(other *Balance) *Balance {
+	return &Balance{Balance: new(big.Int).Div(b.Balance, other.Balance)}
+}
+
+// Quo implements truncated division (like Go). Divides this balance by the other balance.
+func (b *Balance) Quo(other *Balance) *Balance {
+	return &Balance{Balance: new(big.Int).Quo(b.Balance, other.Balance)}
+}
+
+// Mod returns the modulus of this balance by the other balance.
+func (b *Balance) Mod(other *Balance) *Balance {
+	return &Balance{Balance: new(big.Int).Mod(b.Balance, other.Balance)}
+}
+
+// Exp returns the value of the exponent of the balance.
+func (b *Balance) Exp(other *Balance) *Balance {
+	return &Balance{Balance: new(big.Int).Exp(b.Balance, other.Balance, nil)}
+}
+
+// Cmp returns the comparison value of two balances.
+func (b *Balance) Cmp(other *Balance) int {
+	return b.Balance.Cmp(other.Balance)
+}
+
+// Abs returns the absolute value of the balance.
+func (b *Balance) Abs() *Balance {
+	return &Balance{Balance: new(big.Int).Abs(b.Balance)}
+}
+
+// Sign returns whether the sign of the balance.
+func (b *Balance) Sign() int {
+	return b.Balance.Sign()
+}
+
+// IsZero returns whether the balance is zero.
+func (b *Balance) IsZero() bool {
+	return b.Balance.Sign() == 0
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -42,59 +96,29 @@ func (b *Balance) UnmarshalJSON(input []byte) error {
 	if len(input) == 0 {
 		return errors.New("balance missing")
 	}
-	balance := Balance{}
-	bytesStr := strings.ReplaceAll(string(input), `"`, "")
-	bytesArr := []byte(bytesStr)
-	yoctoIndex := 24
-	if len(bytesArr) <= yoctoIndex {
-		balance.NEAR = 0
-	} else {
-		shortVal := bytesArr[:len(bytesArr)-yoctoIndex]
-		val, err := strconv.ParseUint(string(shortVal), 10, 64)
-		if err != nil {
-			return errors.New("invalid NEAR number")
-		}
-		balance.NEAR = val
+
+	balanceBigInt := big.NewInt(0)
+	_, ok := balanceBigInt.SetString(strings.Trim(string(input), "\""), 10)
+	if !ok {
+		return errors.New("failed to unmarshal balance")
 	}
 
-	milliIndex := 20
-	if len(bytesArr) <= milliIndex {
-		balance.MilliNEAR = 0
-	} else {
-		shortVal := bytesArr[len(bytesArr)-yoctoIndex : len(bytesArr)-milliIndex]
-		val, err := strconv.ParseUint(string(shortVal), 10, 64)
-		if err != nil {
-			return errors.New("invalid MilliNEAR number")
-		}
-		balance.MilliNEAR = val
-	}
-
-	balance.Raw = input
-
-	*b = balance
+	b.Balance = balanceBigInt
 
 	return nil
 }
 
 // MarshalJSON implements json.Marshaler.
-func (b Balance) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf("%q", b.String())), nil
+func (b *Balance) MarshalJSON() ([]byte, error) {
+	return json.Marshal(b.Balance.String())
 }
 
-// Parse converts a string to a number.
-func (b *Balance) Parse(input string) (*Balance, error) {
-	if err := b.UnmarshalJSON([]byte(fmt.Sprintf("%q", input))); err != nil {
-		return b, err
-	}
+// PrintNEAR returns the string representation of NEAR.MilliNEAR.
+func (b *Balance) PrintNEAR() string {
+	var precision big.Int
+	precision.Exp(big.NewInt(10), big.NewInt(yoctoNEARPrecision), nil)
 
-	return b, nil
-}
+	near := new(big.Float).Quo(new(big.Float).SetInt(b.Balance), new(big.Float).SetInt(&precision))
 
-// MustParse converts a string to a number, panicking on error.
-func (b *Balance) MustParse(input string) *Balance {
-	if _, err := b.Parse(input); err != nil {
-		panic(err)
-	}
-
-	return b
+	return near.Text('f', milliNEARPrecision)
 }
