@@ -39,6 +39,9 @@ func (s *service) BlockAtTimestamp(ctx context.Context, timestamp time.Time) (*s
 func (s *service) fetchNextBlock(ctx context.Context, targetTimestamp int64, fetchedBlockHeight int64, knownBlockHeight int64, knownBlockTimestamp int64, latestBlockHeight int64) (*spec.Block, error) {
 	fetchedBlock, err := s.BlockByID(ctx, fetchedBlockHeight)
 	if err != nil {
+		if err == ErrBlockNotFound {
+			return s.fetchNextBlock(ctx, targetTimestamp, fetchedBlockHeight-1, knownBlockHeight, knownBlockTimestamp, latestBlockHeight)
+		}
 		return nil, err
 	}
 
@@ -77,6 +80,10 @@ func (s *service) findLastBlockBeforeTimestamp(ctx context.Context, targetTimest
 		for currentHeight > 0 {
 			block, err := s.BlockByID(ctx, currentHeight)
 			if err != nil {
+				if err == ErrBlockNotFound {
+					currentHeight--
+					continue
+				}
 				return nil, err
 			}
 
@@ -91,17 +98,23 @@ func (s *service) findLastBlockBeforeTimestamp(ctx context.Context, targetTimest
 	} else {
 		// `startBlockTimestamp`` is before targetTimestamp, so we need to search forwards.
 		// Search forwards until we find the first block after the target timestamp.
+		previousBlock := &spec.Block{}
 		for currentHeight <= latestBlockHeight {
 			block, err := s.BlockByID(ctx, currentHeight)
 			if err != nil {
+				if err == ErrBlockNotFound {
+					currentHeight++
+					continue
+				}
 				return nil, err
 			}
 
 			if block.Header.Timestamp >= targetTimestamp {
 				// Found the first block after the target timestamp.
-				return block, nil
+				return previousBlock, nil
 			}
 
+			previousBlock = block
 			currentHeight++
 		}
 		return nil, errors.New("timestamp is after latest block time")

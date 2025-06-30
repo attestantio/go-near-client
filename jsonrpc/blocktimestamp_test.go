@@ -33,6 +33,11 @@ func TestBlockAtTimestamp(t *testing.T) {
 			expectedBlockHeight: 100000000,
 			targetTimestamp:     1693394692463909482,
 		},
+		{
+			name:                "Missed block at timestamp",
+			expectedBlockHeight: 153107931,
+			targetTimestamp:     1751173200000000000,
+		},
 	}
 
 	// Create client for mainnet
@@ -57,7 +62,7 @@ func TestBlockAtTimestamp(t *testing.T) {
 
 			// Verify the returned block
 			assert.Equal(t, tc.expectedBlockHeight, block.Header.Height)
-			assert.Equal(t, tc.targetTimestamp, block.Header.Timestamp)
+			assert.GreaterOrEqual(t, tc.targetTimestamp, block.Header.Timestamp)
 
 			// Verify the block timestamp is at or before the target timestamp
 			assert.LessOrEqual(t, block.Header.Timestamp, targetTime.UnixNano())

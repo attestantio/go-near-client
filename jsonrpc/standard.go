@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/okx/go-wallet-sdk/crypto/base58"
@@ -47,7 +48,7 @@ func (s *service) GetAccountStakedBalance(ctx context.Context, accountID string)
 }
 
 // CallFunction implements Service.CallFunction.
-func (s *service) CallFunction(ctx context.Context, contractID string, methodName string, args []byte) ([]byte, error) {
+func (s *service) CallFunction(ctx context.Context, contractID string, methodName string, block string, args []byte) ([]byte, error) {
 	if contractID == "" {
 		return nil, errors.New("contract ID not specified")
 	}
@@ -57,10 +58,20 @@ func (s *service) CallFunction(ctx context.Context, contractID string, methodNam
 
 	params := map[string]interface{}{
 		"request_type": "call_function",
-		"finality":     "final",
 		"account_id":   contractID,
 		"method_name":  methodName,
 		"args_base64":  base64.StdEncoding.EncodeToString(args),
+	}
+	if block != "" {
+		blockIDInt, err := strconv.ParseInt(block, 10, 64)
+		if err != nil {
+			params["block_id"] = blockIDInt
+			return nil, errors.Wrap(err, "failed to parse block ID")
+		} else {
+			params["block_id"] = blockIDInt
+		}
+	} else {
+		params["finality"] = "final"
 	}
 
 	s.log.Debug().
@@ -131,10 +142,17 @@ func (s *service) makeRPCCall(ctx context.Context, method string, params interfa
 			RawJSON("error_data", rpcResp.Error.Data).
 			Str("error_message", rpcResp.Error.Message).
 			Msg("RPC error occurred")
-		return nil, fmt.Errorf("RPC error: %s - %s (cause: %s)", rpcResp.Error.Name, rpcResp.Error.Message, rpcResp.Error.Cause.Name)
+		return nil, s.parseRPCError(rpcResp.Error)
 	}
 
 	return rpcResp.Result, nil
+}
+
+func (s *service) parseRPCError(rpcError *RpcError) error {
+	if rpcError.Name == "HANDLER_ERROR" && rpcError.Cause.Name == "UNKNOWN_BLOCK" {
+		return ErrBlockNotFound
+	}
+	return fmt.Errorf("RPC error: %s - %s (cause: %s)", rpcError.Name, rpcError.Message, rpcError.Cause.Name)
 }
 
 // GetAccountNonce gets the current nonce for an account
