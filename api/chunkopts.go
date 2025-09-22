@@ -11,34 +11,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package jsonrpc
+package api
 
-import (
-	"context"
+// ChunkOpts are the options for chunk calls.
+type ChunkOpts struct {
+	Common CommonOpts
 
-	"github.com/attestantio/go-near-client/api"
-	"github.com/attestantio/go-near-client/spec"
-)
-
-// Status returns the status.
-func (s *Service) Status(ctx context.Context,
-	opts *api.StatusOpts,
-) (
-	*api.Response[*spec.Status],
-	error,
-) {
-	if err := s.assertIsSynced(ctx); err != nil {
-		return nil, err
-	}
-
-	status := &spec.Status{}
-	err := s.client.CallFor(status, "status", nil)
-	if err != nil {
-		return nil, parseJSONRPCError(err)
-	}
-
-	return &api.Response[*spec.Status]{
-		Data:     status,
-		Metadata: map[string]any{},
-	}, nil
+	// ChunkID gets a chunk by chunk ID.
+	ChunkID string
+	// BlockID gets a chunk by block ID (used with ShardID).
+	BlockID uint64
+	// ShardID gets a chunk by shard ID (used with BlockID).
+	ShardID uint64
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/attestantio/go-near-client/api"
 	"github.com/attestantio/go-near-client/spec"
 	"github.com/pkg/errors"
 )
@@ -18,26 +19,30 @@ func abs(x int64) int64 {
 	return x
 }
 
-func (s *service) BlockAtTimestamp(ctx context.Context, timestamp time.Time) (*spec.Block, error) {
+func (s *Service) BlockAtTimestamp(ctx context.Context, timestamp time.Time) (*spec.Block, error) {
 	// Fetch highest block and timestamp from status
-	status, err := s.Status(ctx)
+	status, err := s.Status(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	latestBlockTime := status.SyncInfo.LatestBlockTime
+	if status.Data == nil {
+		return nil, errors.New("status data is nil")
+	}
+
+	latestBlockTime := status.Data.SyncInfo.LatestBlockTime
 	if timestamp.After(latestBlockTime) {
 		return nil, errors.New("timestamp is after latest block time")
 	}
 
-	latestBlockHeight := status.SyncInfo.LatestBlockHeight
+	latestBlockHeight := status.Data.SyncInfo.LatestBlockHeight
 	fetchedBlockHeight := latestBlockHeight + (timestamp.UnixNano()-latestBlockTime.UnixNano())/BLOCKTIME_NANOSECONDS
 
 	return s.fetchNextBlock(ctx, timestamp.UnixNano(), fetchedBlockHeight, latestBlockHeight, latestBlockTime.UnixNano(), latestBlockHeight)
 }
 
-func (s *service) fetchNextBlock(ctx context.Context, targetTimestamp int64, fetchedBlockHeight int64, knownBlockHeight int64, knownBlockTimestamp int64, latestBlockHeight int64) (*spec.Block, error) {
-	fetchedBlock, err := s.BlockByID(ctx, fetchedBlockHeight)
+func (s *Service) fetchNextBlock(ctx context.Context, targetTimestamp int64, fetchedBlockHeight int64, knownBlockHeight int64, knownBlockTimestamp int64, latestBlockHeight int64) (*spec.Block, error) {
+	fetchedBlockResponse, err := s.Block(ctx, &api.BlockOpts{BlockID: fetchedBlockHeight})
 	if err != nil {
 		if err == ErrBlockNotFound {
 			return s.fetchNextBlock(ctx, targetTimestamp, fetchedBlockHeight-1, knownBlockHeight, knownBlockTimestamp, latestBlockHeight)
@@ -45,7 +50,7 @@ func (s *service) fetchNextBlock(ctx context.Context, targetTimestamp int64, fet
 		return nil, err
 	}
 
-	fetchedBlockTimestamp := fetchedBlock.Header.Timestamp
+	fetchedBlockTimestamp := fetchedBlockResponse.Data.Header.Timestamp
 	timePerBlock := (fetchedBlockTimestamp - knownBlockTimestamp) / (fetchedBlockHeight - knownBlockHeight)
 	nextBlockHeight := fetchedBlockHeight + (targetTimestamp-fetchedBlockTimestamp)/timePerBlock
 	if nextBlockHeight > latestBlockHeight {
@@ -71,14 +76,14 @@ func (s *service) fetchNextBlock(ctx context.Context, targetTimestamp int64, fet
 	return s.fetchNextBlock(ctx, targetTimestamp, nextBlockHeight, fetchedBlockHeight, fetchedBlockTimestamp, latestBlockHeight)
 }
 
-func (s *service) findLastBlockBeforeTimestamp(ctx context.Context, targetTimestamp int64, startBlockHeight int64, startBlockTimestamp int64, latestBlockHeight int64) (*spec.Block, error) {
+func (s *Service) findLastBlockBeforeTimestamp(ctx context.Context, targetTimestamp int64, startBlockHeight int64, startBlockTimestamp int64, latestBlockHeight int64) (*spec.Block, error) {
 	currentHeight := startBlockHeight
 
 	if startBlockTimestamp > targetTimestamp {
 		// `startBlockTimestamp`` is after targetTimestamp, so we need to search backwards.
 		// Search backwards until we find the last block before the target timestamp.
 		for currentHeight > 0 {
-			block, err := s.BlockByID(ctx, currentHeight)
+			blockResponse, err := s.Block(ctx, &api.BlockOpts{BlockID: currentHeight})
 			if err != nil {
 				if err == ErrBlockNotFound {
 					currentHeight--
@@ -87,9 +92,9 @@ func (s *service) findLastBlockBeforeTimestamp(ctx context.Context, targetTimest
 				return nil, err
 			}
 
-			if block.Header.Timestamp <= targetTimestamp {
+			if blockResponse.Data.Header.Timestamp <= targetTimestamp {
 				// Found the last block before or at the target timestamp.
-				return block, nil
+				return blockResponse.Data, nil
 			}
 
 			currentHeight--
@@ -100,7 +105,7 @@ func (s *service) findLastBlockBeforeTimestamp(ctx context.Context, targetTimest
 		// Search forwards until we find the first block after the target timestamp.
 		previousBlock := &spec.Block{}
 		for currentHeight <= latestBlockHeight {
-			block, err := s.BlockByID(ctx, currentHeight)
+			blockResponse, err := s.Block(ctx, &api.BlockOpts{BlockID: currentHeight})
 			if err != nil {
 				if err == ErrBlockNotFound {
 					currentHeight++
@@ -109,12 +114,12 @@ func (s *service) findLastBlockBeforeTimestamp(ctx context.Context, targetTimest
 				return nil, err
 			}
 
-			if block.Header.Timestamp >= targetTimestamp {
+			if blockResponse.Data.Header.Timestamp > targetTimestamp {
 				// Found the first block after the target timestamp.
 				return previousBlock, nil
 			}
 
-			previousBlock = block
+			previousBlock = blockResponse.Data
 			currentHeight++
 		}
 		return nil, errors.New("timestamp is after latest block time")

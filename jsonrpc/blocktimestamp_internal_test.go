@@ -6,15 +6,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/attestantio/go-near-client/api"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBlockAtTimestamp(t *testing.T) {
-	// Skip if RPC_URL is not set
-	rpcURL := os.Getenv("RPC_URL")
+	// Skip if JSONRPC_ADDRESS is not set
+	rpcURL := os.Getenv("JSONRPC_ADDRESS")
 	if rpcURL == "" {
-		t.Skip("RPC_URL environment variable not set")
+		t.Skip("JSONRPC_ADDRESS environment variable not set")
 	}
 
 	// Test cases with expected block heights and timestamps
@@ -40,20 +42,18 @@ func TestBlockAtTimestamp(t *testing.T) {
 		},
 	}
 
-	// Create client for mainnet
-	params := &Parameters{
-		Network: "mainnet",
-		Address: rpcURL,
-		Timeout: 30 * time.Second,
-	}
-
-	client, err := New(context.Background(), params)
+	// Create JSONRPC client.
+	client, err := New(context.Background(),
+		WithAddress(rpcURL),
+		WithTimeout(30*time.Second),
+		WithMonitor(nil),
+		WithLogLevel(zerolog.GlobalLevel()))
 	require.NoError(t, err)
 
-	// Run tests for each test case
+	// Run tests for each test case.
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			targetTime := time.Unix(0, tc.targetTimestamp) // Convert nanoseconds to time.Time
+			targetTime := time.Unix(0, tc.targetTimestamp) // Convert nanoseconds to time.Time.
 
 			// Test BlockAtTimestamp
 			block, err := client.BlockAtTimestamp(context.Background(), targetTime)
@@ -69,13 +69,10 @@ func TestBlockAtTimestamp(t *testing.T) {
 
 			// Additional verification: check that the next block (if it exists) would be after the target timestamp
 			// This ensures we got the last block before the timestamp
-			nextBlock, err := client.GetLatestBlock(context.Background())
-			if err == nil && nextBlock.Header.Height > block.Header.Height {
-				// Try to get the next block after our result
-				nextBlockByID, err := client.(*service).BlockByID(context.Background(), tc.expectedBlockHeight+1)
-				if err == nil {
-					assert.Greater(t, nextBlockByID.Header.Timestamp, targetTime.UnixNano())
-				}
+			// Try to get the next block after our result
+			nextBlock, err := client.Block(context.Background(), &api.BlockOpts{BlockID: tc.expectedBlockHeight + 1})
+			if err == nil {
+				assert.Greater(t, nextBlock.Data.Header.Timestamp, targetTime.UnixNano())
 			}
 
 			t.Logf("Successfully found block at height %d with timestamp %d", block.Header.Height, block.Header.Timestamp)
@@ -84,19 +81,17 @@ func TestBlockAtTimestamp(t *testing.T) {
 }
 
 func TestBlockAtTimestampEdgeCases(t *testing.T) {
-	// Skip if RPC_URL is not set
-	rpcURL := os.Getenv("RPC_URL")
+	// Skip if JSONRPC_ADDRESS is not set
+	rpcURL := os.Getenv("JSONRPC_ADDRESS")
 	if rpcURL == "" {
-		t.Skip("RPC_URL environment variable not set")
+		t.Skip("JSONRPC_ADDRESS environment variable not set")
 	}
 
-	params := &Parameters{
-		Network: "mainnet",
-		Address: rpcURL,
-		Timeout: 30 * time.Second,
-	}
-
-	client, err := New(context.Background(), params)
+	client, err := New(context.Background(),
+		WithAddress(rpcURL),
+		WithTimeout(30*time.Second),
+		WithMonitor(nil),
+		WithLogLevel(zerolog.GlobalLevel()))
 	require.NoError(t, err)
 
 	// Test with a timestamp in the future (should return an error)
@@ -115,33 +110,31 @@ func TestBlockAtTimestampEdgeCases(t *testing.T) {
 }
 
 func TestBlockAtTimestampIntegration(t *testing.T) {
-	// Skip if RPC_URL is not set
-	rpcURL := os.Getenv("RPC_URL")
+	// Skip if JSONRPC_ADDRESS is not set
+	rpcURL := os.Getenv("JSONRPC_ADDRESS")
 	if rpcURL == "" {
-		t.Skip("RPC_URL environment variable not set")
+		t.Skip("JSONRPC_ADDRESS environment variable not set")
 	}
 
-	params := &Parameters{
-		Network: "mainnet",
-		Address: rpcURL,
-		Timeout: 30 * time.Second,
-	}
-
-	client, err := New(context.Background(), params)
+	client, err := New(context.Background(),
+		WithAddress(rpcURL),
+		WithTimeout(30*time.Second),
+		WithMonitor(nil),
+		WithLogLevel(zerolog.GlobalLevel()))
 	require.NoError(t, err)
 
 	// Get the latest block first
-	latestBlock, err := client.GetLatestBlock(context.Background())
+	latestBlock, err := client.Block(context.Background(), &api.BlockOpts{Finality: "final"})
 	require.NoError(t, err)
 	require.NotNil(t, latestBlock)
 
 	// Test with the latest block's timestamp
-	latestTime := time.Unix(0, latestBlock.Header.Timestamp)
+	latestTime := time.Unix(0, latestBlock.Data.Header.Timestamp)
 	block, err := client.BlockAtTimestamp(context.Background(), latestTime)
 	require.NoError(t, err)
 	require.NotNil(t, block)
 
 	// Should return the same block
-	assert.Equal(t, latestBlock.Header.Height, block.Header.Height)
-	assert.Equal(t, latestBlock.Header.Timestamp, block.Header.Timestamp)
+	assert.Equal(t, latestBlock.Data.Header.Height, block.Header.Height)
+	assert.Equal(t, latestBlock.Data.Header.Timestamp, block.Header.Timestamp)
 }

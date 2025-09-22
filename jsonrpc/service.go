@@ -37,13 +37,12 @@ import (
 
 // Service is an NEAR client service.
 type Service struct {
-	log              zerolog.Logger
-	base             *url.URL
-	address          string
-	webSocketAddress string
-	client           jsonrpc.RPCClient
-	httpClient       *http.Client
-	timeout          time.Duration
+	log        zerolog.Logger
+	base       *url.URL
+	address    string
+	client     jsonrpc.RPCClient
+	httpClient *http.Client
+	timeout    time.Duration
 	// Endpoint support.
 	pingSem          *semaphore.Weighted
 	connectionMu     sync.RWMutex
@@ -88,17 +87,7 @@ func New(ctx context.Context, params ...Parameter) (*Service, error) {
 		return nil, err
 	}
 
-	webSocketAddress := parameters.webSocketAddress
-	if strings.HasPrefix(webSocketAddress, "http://") {
-		webSocketAddress = fmt.Sprintf("ws://%s", webSocketAddress[7:])
-	}
-	if strings.HasPrefix(webSocketAddress, "https://") {
-		webSocketAddress = fmt.Sprintf("wss://%s", webSocketAddress[8:])
-	}
-	if !strings.HasPrefix(webSocketAddress, "ws") {
-		webSocketAddress = fmt.Sprintf("ws://%s", webSocketAddress)
-	}
-	log.Trace().Stringer("address", address).Str("web_socket_address", webSocketAddress).Msg("Addresses configured")
+	log.Trace().Stringer("address", address).Msg("Address configured")
 
 	extraHeaders := map[string]string{
 		"User-Agent": "go-near-client/0.1.0",
@@ -110,18 +99,17 @@ func New(ctx context.Context, params ...Parameter) (*Service, error) {
 	})
 
 	s := &Service{
-		log:              log,
-		base:             base,
-		client:           rpcClient,
-		httpClient:       httpClient,
-		address:          address.String(),
-		webSocketAddress: webSocketAddress,
-		timeout:          parameters.timeout,
-		pingSem:          semaphore.NewWeighted(1),
+		log:        log,
+		base:       base,
+		client:     rpcClient,
+		httpClient: httpClient,
+		address:    address.String(),
+		timeout:    parameters.timeout,
+		pingSem:    semaphore.NewWeighted(1),
 	}
 
 	// Ping the client to see if it is ready to serve requests.
-	// s.CheckConnectionState(ctx)
+	s.CheckConnectionState(ctx)
 	active := s.IsActive()
 
 	if !active && !parameters.allowDelayedStart {
@@ -193,6 +181,30 @@ func (s *Service) makeRPCQueryCall(method, contractID string, args map[string]an
 	}
 
 	return data, err
+}
+
+func (s *Service) CallQueryFor(out any, method, contractID string, args map[string]any) error {
+	argsBytes, err := json.Marshal(args)
+	if err != nil {
+		return errors.Join(fmt.Errorf("failed to marshal %s args to bytes", method), client.ErrInvalidOptions)
+	}
+	params := map[string]any{
+		"request_type": "call_function",
+		"finality":     "final",
+		"method_name":  method,
+		"args_base64":  base64.StdEncoding.EncodeToString(argsBytes),
+	}
+
+	if contractID != "" {
+		params["account_id"] = contractID
+	}
+
+	err = s.client.CallFor(out, "query", params)
+	if err != nil {
+		return errors.Join(errors.New("failed to call json rpc"), err)
+	}
+
+	return nil
 }
 
 // parseJSONRPCError potentially adds more information to a JSONRPC error.

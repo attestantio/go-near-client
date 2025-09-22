@@ -247,7 +247,7 @@ func TestStatusWithNonNullableFields(t *testing.T) {
 		NodePublicKey:         "ed25519:test_key",
 		ProtocolVersion:       78,
 		RPCAddr:               "127.0.0.1:3030",
-		SyncInfo: spec.SyncInfo{
+		SyncInfo: &spec.SyncInfo{
 			EarliestBlockHash:   "earliest_hash",
 			EarliestBlockHeight: 1000,
 			EpochID:             "epoch_id",

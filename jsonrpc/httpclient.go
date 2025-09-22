@@ -62,7 +62,7 @@ func (s *Service) makeRPCCall(ctx context.Context, method string, params any) (j
 		params = []string{base64Str}
 	}
 
-	request := RPCRequest{
+	request := RpcRequest{
 		Version: "2.0",
 		Method:  method,
 		Params:  params,
@@ -86,7 +86,11 @@ func (s *Service) makeRPCCall(ctx context.Context, method string, params any) (j
 	}
 	defer resp.Body.Close()
 
-	var rpcResp RPCResponse
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to send request: %s", resp.Status)
+	}
+
+	var rpcResp RpcResponse
 	if err := json.NewDecoder(resp.Body).Decode(&rpcResp); err != nil {
 		return nil, errors.Wrap(err, "failed to decode response")
 	}

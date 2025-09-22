@@ -1,54 +1,65 @@
+// Copyright © 2025 Attestant Limited.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package jsonrpc
 
 import (
 	"context"
-	"encoding/json"
 
+	client "github.com/attestantio/go-near-client"
+	"github.com/attestantio/go-near-client/api"
 	"github.com/attestantio/go-near-client/spec"
 )
 
-type ChunkByIDRequest struct {
-	ChunkID string `json:"chunk_id"`
-}
+// Chunk returns the chunk.
+func (s *Service) Chunk(ctx context.Context,
+	opts *api.ChunkOpts,
+) (
+	*api.Response[*spec.Chunk],
+	error,
+) {
+	if err := s.assertIsSynced(ctx); err != nil {
+		return nil, err
+	}
 
-type ChunkByBlockAndShardRequest struct {
-	BlockID uint64 `json:"block_id"`
-	ShardID uint64 `json:"shard_id"`
-}
+	if opts == nil {
+		return nil, client.ErrNoOptions
+	}
 
-func (s *service) ChunkByID(ctx context.Context, chunkID string) (*spec.Chunk, error) {
-	result, err := s.makeRPCCall(ctx, "chunk", ChunkByIDRequest{ChunkID: chunkID})
+	var args map[string]any
+
+	switch {
+	case opts.ChunkID != "":
+		args = map[string]any{
+			"chunk_id": opts.ChunkID,
+		}
+	case opts.BlockID != 0 && opts.ShardID != 0:
+		args = map[string]any{
+			"block_id": opts.BlockID,
+			"shard_id": opts.ShardID,
+		}
+	default:
+		return nil, client.ErrInvalidOptions
+	}
+
+	chunk := &spec.Chunk{}
+	err := s.client.CallFor(chunk, "chunk", args)
 	if err != nil {
-		return nil, err
+		return nil, parseJSONRPCError(err)
 	}
 
-	chunk, err := s.parseChunkResponse(result)
-	if err != nil {
-		return nil, err
-	}
-
-	return chunk, nil
-}
-
-func (s *service) ChunkByBlockAndShard(ctx context.Context, blockID uint64, shardID uint64) (*spec.Chunk, error) {
-	result, err := s.makeRPCCall(ctx, "chunk", ChunkByBlockAndShardRequest{BlockID: blockID, ShardID: shardID})
-	if err != nil {
-		return nil, err
-	}
-
-	chunk, err := s.parseChunkResponse(result)
-	if err != nil {
-		return nil, err
-	}
-
-	return chunk, nil
-}
-
-func (s *service) parseChunkResponse(result json.RawMessage) (*spec.Chunk, error) {
-	var chunk spec.Chunk
-	if err := json.Unmarshal(result, &chunk); err != nil {
-		return nil, err
-	}
-
-	return &chunk, nil
+	return &api.Response[*spec.Chunk]{
+		Data:     chunk,
+		Metadata: map[string]any{},
+	}, nil
 }

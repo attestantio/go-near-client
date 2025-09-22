@@ -15,8 +15,6 @@ package jsonrpc
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 
 	client "github.com/attestantio/go-near-client"
 	"github.com/attestantio/go-near-client/api"
@@ -38,8 +36,7 @@ func (s *Service) Block(ctx context.Context,
 		return nil, client.ErrNoOptions
 	}
 
-	var args map[string]any{}
-
+	var args map[string]any
 
 	switch {
 	case opts.Finality != "":
@@ -58,15 +55,10 @@ func (s *Service) Block(ctx context.Context,
 		return nil, client.ErrInvalidOptions
 	}
 
-	data, err := s.makeRPCCall(ctx, "block", args)
+	block := &spec.Block{}
+	err := s.client.CallFor(block, "block", args)
 	if err != nil {
 		return nil, parseJSONRPCError(err)
-	}
-
-	block := &spec.Block{}
-	err = json.Unmarshal(data, block)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to unmarshal result to block"), client.ErrInconsistentResult)
 	}
 
 	return &api.Response[*spec.Block]{
