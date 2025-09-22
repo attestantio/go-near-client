@@ -19,6 +19,8 @@ type BlockOpts struct {
 
 	// Finality gets a block by finality.
 	Finality string
-	// ContractID is the contract ID use for the query.
-	ContractID string
+	// Hash gets a block by hash.
+	Hash string
+	// BlockID gets a block by block_id.
+	BlockID int64
 }

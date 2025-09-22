@@ -3,7 +3,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//    http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,20 +15,26 @@ package types_test
 
 import (
 	"encoding/json"
+	"math/big"
 	"testing"
 
 	"github.com/attestantio/go-near-client/types"
 	"github.com/stretchr/testify/require"
 )
 
+func getBalance(input string) *big.Int {
+	newBigInt := big.NewInt(0)
+	newBigInt.SetString(input, 10)
+	return newBigInt
+}
+
 func TestBalanceUnmarshalJSON(t *testing.T) {
 	tests := []struct {
-		name            string
-		input           []byte
-		output          []byte
-		outputNear      uint64
-		outputMilliNear uint64
-		err             string
+		name    string
+		input   []byte
+		output  []byte
+		balance *big.Int
+		err     string
 	}{
 		{
 			name:  "Empty",
@@ -36,39 +42,28 @@ func TestBalanceUnmarshalJSON(t *testing.T) {
 			err:   "unexpected end of JSON input",
 		},
 		{
-			name:            "FullNEAR",
-			input:           []byte(`"30246689787546400881670512075"`),
-			output:          []byte(`"30246689787546400881670512075"`),
-			outputNear:      uint64(30246),
-			outputMilliNear: uint64(6897),
+			name:    "FullNEAR",
+			input:   []byte(`"30246689787546400881670512075"`),
+			output:  []byte(`"30246689787546400881670512075"`),
+			balance: getBalance("30246689787546400881670512075"),
 		},
 		{
-			name:            "FullNEAR",
-			input:           []byte(`"30246689787546400881670512075"`),
-			output:          []byte(`"30246689787546400881670512075"`),
-			outputNear:      uint64(30246),
-			outputMilliNear: uint64(6897),
+			name:    "MilliNEAR",
+			input:   []byte(`"689787546400881670512075"`),
+			output:  []byte(`"689787546400881670512075"`),
+			balance: getBalance("689787546400881670512075"),
 		},
 		{
-			name:            "MilliNEAR",
-			input:           []byte(`"689787546400881670512075"`),
-			output:          []byte(`"689787546400881670512075"`),
-			outputNear:      uint64(0),
-			outputMilliNear: uint64(6897),
+			name:    "yoctoNEAR",
+			input:   []byte(`"87546400881670512075"`),
+			output:  []byte(`"87546400881670512075"`),
+			balance: getBalance("87546400881670512075"),
 		},
 		{
-			name:            "yoctoNEAR",
-			input:           []byte(`"87546400881670512075"`),
-			output:          []byte(`"87546400881670512075"`),
-			outputNear:      uint64(0),
-			outputMilliNear: uint64(0),
-		},
-		{
-			name:            "small yoctoNEAR",
-			input:           []byte(`"75"`),
-			output:          []byte(`"75"`),
-			outputNear:      uint64(0),
-			outputMilliNear: uint64(0),
+			name:    "small yoctoNEAR",
+			input:   []byte(`"75"`),
+			output:  []byte(`"75"`),
+			balance: getBalance("75"),
 		},
 	}
 
@@ -88,8 +83,7 @@ func TestBalanceUnmarshalJSON(t *testing.T) {
 				} else {
 					require.Equal(t, string(test.output), string(rt))
 					require.Equal(t, string(test.output), `"`+res.String()+`"`)
-					require.Equal(t, test.outputNear, res.NEAR)
-					require.Equal(t, test.outputMilliNear, res.MilliNEAR)
+					require.Equal(t, test.balance, res.Balance)
 				}
 			}
 		})
