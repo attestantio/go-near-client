@@ -15,7 +15,6 @@ package jsonrpc
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 
 	client "github.com/attestantio/go-near-client"
@@ -47,14 +46,10 @@ func (s *Service) Account(ctx context.Context,
 	args := map[string]any{
 		"account_id": opts.AccountID,
 	}
-	data, err := s.makeRPCQueryCall("get_account", opts.ContractID, args)
+	account := &spec.Account{}
+	err := s.CallQueryFor(account, "get_account", opts.ContractID, args)
 	if err != nil {
 		return nil, parseJSONRPCError(err)
-	}
-	account := &spec.Account{}
-	err = json.Unmarshal(data.Result, account)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to unmarshal result to account"), client.ErrInconsistentResult)
 	}
 
 	return &api.Response[*spec.Account]{

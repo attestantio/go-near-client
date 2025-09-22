@@ -22,7 +22,7 @@ import (
 
 // Status returns the status.
 func (s *Service) Status(ctx context.Context,
-	opts *api.StatusOpts,
+	_ *api.StatusOpts,
 ) (
 	*api.Response[*spec.Status],
 	error,

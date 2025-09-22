@@ -15,7 +15,7 @@ package spec
 
 import "time"
 
-// SyncInfo contains information about the node's synchronization status
+// SyncInfo contains information about the node's synchronization status.
 type SyncInfo struct {
 	EarliestBlockHash   string    `json:"earliest_block_hash"`
 	EarliestBlockHeight int64     `json:"earliest_block_height"`

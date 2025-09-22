@@ -30,13 +30,13 @@ type Status struct {
 	Version               Version     `json:"version"`
 }
 
-// Validator represents a validator in the network
+// Validator represents a validator in the network.
 type Validator struct {
 	AccountID string `json:"account_id"`
 	IsSlashed bool   `json:"is_slashed"`
 }
 
-// Version contains information about the node's version
+// Version contains information about the node's version.
 type Version struct {
 	Build        string `json:"build"`
 	Commit       string `json:"commit"`

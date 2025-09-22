@@ -24,45 +24,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-// RPCRequest represents a JSON-RPC request.
-type RPCRequest struct {
-	Version string `json:"jsonrpc"`
-	Method  string `json:"method"`
-	Params  any    `json:"params"`
-	ID      string `json:"id"`
-}
-
-// RPCResponse represents a JSON-RPC response.
-type RPCResponse struct {
-	Version string          `json:"jsonrpc"`
-	Result  json.RawMessage `json:"result,omitempty"`
-	Error   *RPCError       `json:"error,omitempty"`
-	ID      string          `json:"id"`
-}
-
-// RPCError represents a JSON-RPC error.
-type RPCError struct {
-	Name    string          `json:"name"`
-	Cause   Cause           `json:"cause"`
-	Code    int             `json:"code"`
-	Data    json.RawMessage `json:"data"`
-	Message string          `json:"message"`
-}
-
-// Cause represents the cause of an RPCError.
-type Cause struct {
-	Info json.RawMessage `json:"info"`
-	Name string          `json:"name"`
-}
-
-// makeRPCCall makes a JSON-RPC call to the NEAR node.
-func (s *Service) makeRPCCall(ctx context.Context, method string, params any) (json.RawMessage, error) {
+// MakeRPCCall makes a JSON-RPC call to the NEAR node.
+func (s *Service) MakeRPCCall(ctx context.Context, method string, params any) (json.RawMessage, error) {
 	// If params is a string (base64 tx), wrap it in an array
 	if base64Str, ok := params.(string); ok {
 		params = []string{base64Str}
 	}
 
-	request := RpcRequest{
+	request := RPCRequest{
 		Version: "2.0",
 		Method:  method,
 		Params:  params,
@@ -90,7 +59,7 @@ func (s *Service) makeRPCCall(ctx context.Context, method string, params any) (j
 		return nil, fmt.Errorf("failed to send request: %s", resp.Status)
 	}
 
-	var rpcResp RpcResponse
+	var rpcResp RPCResponse
 	if err := json.NewDecoder(resp.Body).Decode(&rpcResp); err != nil {
 		return nil, errors.Wrap(err, "failed to decode response")
 	}

@@ -154,11 +154,8 @@ func (s *Service) periodicUpdateConnectionState(ctx context.Context) {
 	}(s, ctx)
 }
 
-type response struct {
-	Result []byte `json:"result"`
-}
-
-func (s *Service) makeRPCQueryCall(method, contractID string, args map[string]any) (*response, error) {
+// MakeRPCQueryCall makes a JSON-RPC query call to the NEAR node.
+func (s *Service) MakeRPCQueryCall(method, contractID string, args map[string]any) (*RPCResponse, error) {
 	argsBytes, err := json.Marshal(args)
 	if err != nil {
 		return nil, errors.Join(fmt.Errorf("failed to marshal %s args to bytes", method), client.ErrInvalidOptions)
@@ -174,7 +171,7 @@ func (s *Service) makeRPCQueryCall(method, contractID string, args map[string]an
 		params["account_id"] = contractID
 	}
 
-	data := &response{}
+	data := &RPCResponse{}
 	err = s.client.CallFor(data, "query", params)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to call json rpc"), err)
@@ -183,6 +180,7 @@ func (s *Service) makeRPCQueryCall(method, contractID string, args map[string]an
 	return data, err
 }
 
+// CallQueryFor calls a query method and unmarshals the result into the out parameter.
 func (s *Service) CallQueryFor(out any, method, contractID string, args map[string]any) error {
 	argsBytes, err := json.Marshal(args)
 	if err != nil {
@@ -353,7 +351,7 @@ func (s *Service) assertIsSynced(ctx context.Context) error {
 	return nil
 }
 
-//nolint:revive
+// parseAddress parses the address and returns the base URL and the address URL.
 func parseAddress(address string) (*url.URL, *url.URL, error) {
 	if !strings.HasPrefix(address, "http") {
 		address = fmt.Sprintf("http://%s", address)
