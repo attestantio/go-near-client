@@ -56,7 +56,8 @@ func TestBlockAtTimestamp(t *testing.T) {
 			targetTime := time.Unix(0, tc.targetTimestamp) // Convert nanoseconds to time.Time.
 
 			// Test BlockAtTimestamp
-			block, err := client.BlockAtTimestamp(context.Background(), targetTime)
+			blockResponse, err := client.BlockAtTimestamp(context.Background(), targetTime)
+			block := blockResponse.Data
 			require.NoError(t, err)
 			require.NotNil(t, block)
 
@@ -96,17 +97,17 @@ func TestBlockAtTimestampEdgeCases(t *testing.T) {
 
 	// Test with a timestamp in the future (should return an error)
 	futureTime := time.Now().Add(24 * time.Hour)
-	block, err := client.BlockAtTimestamp(context.Background(), futureTime)
+	blockResponse, err := client.BlockAtTimestamp(context.Background(), futureTime)
 	require.Error(t, err, "timestamp is after latest block time")
-	require.Nil(t, block)
+	require.Nil(t, blockResponse)
 
 	// Test with a timestamp very far in the past
 	pastTime := time.Unix(0, 0) // Unix epoch
-	block, err = client.BlockAtTimestamp(context.Background(), pastTime)
+	blockResponse, err = client.BlockAtTimestamp(context.Background(), pastTime)
 
 	// The error comes from the RPC node, invalid block height.
 	require.Error(t, err)
-	require.Nil(t, block)
+	require.Nil(t, blockResponse)
 }
 
 func TestBlockAtTimestampIntegration(t *testing.T) {
@@ -130,7 +131,8 @@ func TestBlockAtTimestampIntegration(t *testing.T) {
 
 	// Test with the latest block's timestamp
 	latestTime := time.Unix(0, latestBlock.Data.Header.Timestamp)
-	block, err := client.BlockAtTimestamp(context.Background(), latestTime)
+	blockResponse, err := client.BlockAtTimestamp(context.Background(), latestTime)
+	block := blockResponse.Data
 	require.NoError(t, err)
 	require.NotNil(t, block)
 

@@ -34,7 +34,7 @@ func abs(x int64) int64 {
 }
 
 // BlockAtTimestamp returns last block before or at a given timestamp.
-func (s *Service) BlockAtTimestamp(ctx context.Context, timestamp time.Time) (*spec.Block, error) {
+func (s *Service) BlockAtTimestamp(ctx context.Context, timestamp time.Time) (*api.Response[*spec.Block], error) {
 	// Fetch highest block and timestamp from status
 	status, err := s.Status(ctx, nil)
 	if err != nil {
@@ -53,13 +53,21 @@ func (s *Service) BlockAtTimestamp(ctx context.Context, timestamp time.Time) (*s
 	latestBlockHeight := status.Data.SyncInfo.LatestBlockHeight
 	fetchedBlockHeight := latestBlockHeight + (timestamp.UnixNano()-latestBlockTime.UnixNano())/blockTimeNanoseconds
 
-	return s.fetchNextBlock(ctx,
+	block, err := s.fetchNextBlock(ctx,
 		timestamp.UnixNano(),
 		fetchedBlockHeight,
 		latestBlockHeight,
 		latestBlockTime.UnixNano(),
 		latestBlockHeight,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.Response[*spec.Block]{
+		Data:     block,
+		Metadata: map[string]any{},
+	}, nil
 }
 
 func (s *Service) fetchNextBlock(ctx context.Context,
@@ -91,19 +99,17 @@ func (s *Service) fetchNextBlock(ctx context.Context,
 		return nil, errors.New("timestamp is after latest block time")
 	}
 
-	// TODO: RPCs and archival nodes do not store blocks all the way to zero.
-	// First suupport support seems to be around block 10000000
-	if nextBlockHeight < 0 {
-		if fetchedBlockHeight == 0 {
+	if nextBlockHeight < s.genesisBlockHeight {
+		if fetchedBlockHeight == s.genesisBlockHeight {
 			return nil, errors.New("timestamp is before first block time")
 		}
-		nextBlockHeight = 0
+		nextBlockHeight = s.genesisBlockHeight
 	}
 
 	if abs(nextBlockHeight-fetchedBlockHeight) <= 5 {
 		block, err := s.findLastBlockBeforeTimestamp(ctx,
 			targetTimestamp,
-			nextBlockHeight,
+			fetchedBlockHeight,
 			fetchedBlockTimestamp,
 			latestBlockHeight,
 		)
@@ -135,7 +141,7 @@ func (s *Service) findLastBlockBeforeTimestamp(
 	if startBlockTimestamp > targetTimestamp {
 		// `startBlockTimestamp`` is after targetTimestamp, so we need to search backwards.
 		// Search backwards until we find the last block before the target timestamp.
-		for currentHeight > 0 {
+		for currentHeight > s.genesisBlockHeight {
 			blockResponse, err := s.Block(ctx, &api.BlockOpts{BlockID: currentHeight})
 			if err != nil {
 				if errors.Is(err, ErrBlockNotFound) {

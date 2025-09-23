@@ -22,11 +22,12 @@ import (
 )
 
 type parameters struct {
-	logLevel          zerolog.Level
-	monitor           metrics.Service
-	address           string
-	timeout           time.Duration
-	allowDelayedStart bool
+	logLevel           zerolog.Level
+	monitor            metrics.Service
+	address            string
+	timeout            time.Duration
+	allowDelayedStart  bool
+	genesisBlockHeight int64
 }
 
 // Parameter is the interface for service parameters.
@@ -75,11 +76,19 @@ func WithAllowDelayedStart(allowDelayedStart bool) Parameter {
 	})
 }
 
+// WithGenesisBlockHeight sets the genesis block height for the service.
+func WithGenesisBlockHeight(genesisBlockHeight int64) Parameter {
+	return parameterFunc(func(p *parameters) {
+		p.genesisBlockHeight = genesisBlockHeight
+	})
+}
+
 // parseAndCheckParameters parses and checks parameters to ensure that mandatory parameters are present and correct.
 func parseAndCheckParameters(params ...Parameter) (*parameters, error) {
 	parameters := parameters{
-		logLevel: zerolog.GlobalLevel(),
-		timeout:  2 * time.Minute,
+		logLevel:           zerolog.GlobalLevel(),
+		timeout:            2 * time.Minute,
+		genesisBlockHeight: -1,
 	}
 	for _, p := range params {
 		if params != nil {

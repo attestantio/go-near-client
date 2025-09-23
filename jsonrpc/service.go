@@ -37,12 +37,13 @@ import (
 
 // Service is an NEAR client service.
 type Service struct {
-	log        zerolog.Logger
-	base       *url.URL
-	address    string
-	client     jsonrpc.RPCClient
-	httpClient *http.Client
-	timeout    time.Duration
+	log                zerolog.Logger
+	base               *url.URL
+	address            string
+	client             jsonrpc.RPCClient
+	httpClient         *http.Client
+	timeout            time.Duration
+	genesisBlockHeight int64
 	// Endpoint support.
 	pingSem          *semaphore.Weighted
 	connectionMu     sync.RWMutex
@@ -99,13 +100,28 @@ func New(ctx context.Context, params ...Parameter) (*Service, error) {
 	})
 
 	s := &Service{
-		log:        log,
-		base:       base,
-		client:     rpcClient,
-		httpClient: httpClient,
-		address:    address.String(),
-		timeout:    parameters.timeout,
-		pingSem:    semaphore.NewWeighted(1),
+		log:                log,
+		base:               base,
+		client:             rpcClient,
+		httpClient:         httpClient,
+		address:            address.String(),
+		timeout:            parameters.timeout,
+		genesisBlockHeight: parameters.genesisBlockHeight,
+		pingSem:            semaphore.NewWeighted(1),
+	}
+
+	if s.genesisBlockHeight < 0 {
+		// fetch genesis block height from the node
+		status, err := s.Status(ctx, &api.StatusOpts{})
+		if err != nil {
+			return nil, errors.Join(errors.New("failed to fetch node status"), err)
+		}
+
+		block, err := s.Block(ctx, &api.BlockOpts{Hash: status.Data.GenesisHash})
+		if err != nil {
+			return nil, errors.Join(errors.New("failed to fetch genesis block"), err)
+		}
+		s.genesisBlockHeight = block.Data.Header.Height
 	}
 
 	// Ping the client to see if it is ready to serve requests.
@@ -370,10 +386,10 @@ func parseAddress(address string) (*url.URL, *url.URL, error) {
 		user := baseAddress.User.Username()
 		baseAddress.User = url.UserPassword(user, "xxxxx")
 	}
-	if baseAddress.Path != "" {
-		// Mask the path.
-		baseAddress.Path = "xxxxx"
-	}
+	// if baseAddress.Path != "" {
+	// 	// Mask the path.
+	// 	baseAddress.Path = "xxxxx"
+	// }
 	if baseAddress.RawQuery != "" {
 		// Mask all query values.
 		sensitiveRegex := regexp.MustCompile("=([^&]*)(&)?")
