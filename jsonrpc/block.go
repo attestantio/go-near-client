@@ -36,19 +36,8 @@ func (s *Service) Block(ctx context.Context,
 		return nil, client.ErrNoOptions
 	}
 
-	// Check only one of the options is set.
-	nparams := 0
-	if opts.Finality != "" {
-		nparams++
-	}
-	if opts.BlockID != 0 {
-		nparams++
-	}
-	if opts.Hash != "" {
-		nparams++
-	}
-	if nparams != 1 {
-		return nil, client.ErrInvalidOptions
+	if err := validateBlockOpts(opts); err != nil {
+		return nil, err
 	}
 
 	var args map[string]any
@@ -64,14 +53,14 @@ func (s *Service) Block(ctx context.Context,
 		}
 	case opts.Hash != "":
 		args = map[string]any{
-			"hash": opts.Hash,
+			"block_id": opts.Hash,
 		}
 	default:
 		return nil, client.ErrInvalidOptions
 	}
 
 	block := &spec.Block{}
-	err := s.client.CallFor(block, "block", args)
+	err := s.CallFor(ctx, block, "block", args)
 	if err != nil {
 		return nil, parseJSONRPCError(err)
 	}
@@ -80,4 +69,24 @@ func (s *Service) Block(ctx context.Context,
 		Data:     block,
 		Metadata: map[string]any{},
 	}, nil
+}
+
+// validateBlockOpts validates the block options.
+func validateBlockOpts(opts *api.BlockOpts) error {
+	// Check only one of the options is set.
+	nparams := 0
+	if opts.Finality != "" {
+		nparams++
+	}
+	if opts.BlockID != 0 {
+		nparams++
+	}
+	if opts.Hash != "" {
+		nparams++
+	}
+	if nparams != 1 {
+		return client.ErrInvalidOptions
+	}
+
+	return nil
 }

@@ -22,5 +22,5 @@ type ChunkOpts struct {
 	// BlockID gets a chunk by block ID (used with ShardID).
 	BlockID uint64
 	// ShardID gets a chunk by shard ID (used with BlockID).
-	ShardID uint64
+	ShardID *uint64
 }

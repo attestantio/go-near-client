@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"time"
 
+	client "github.com/attestantio/go-near-client"
 	"github.com/pkg/errors"
 )
 
@@ -55,19 +56,47 @@ func (s *Service) MakeRPCCall(ctx context.Context, method string, params any) (j
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("json rpc request failed with status code %d", resp.StatusCode)
-	}
-
 	var rpcResp RPCResponse
 	if err := json.NewDecoder(resp.Body).Decode(&rpcResp); err != nil {
+		// The RPC didnot return a valid JSON response. Just return the status code.
+		if resp.StatusCode != http.StatusOK {
+			s.log.Debug().
+				Int("status_code", resp.StatusCode).
+				Str("method", method).
+				Interface("params", params).Msg("json rpc request failed")
+
+			return nil, fmt.Errorf("json rpc request failed with status code %d", resp.StatusCode)
+		}
+
 		return nil, errors.Wrap(err, "failed to decode response")
 	}
 
 	if rpcResp.Error != nil {
-		return nil, fmt.Errorf("RPC error: %s - %s (cause: %s)",
-			rpcResp.Error.Name, rpcResp.Error.Message, rpcResp.Error.Cause.Name)
+		return nil, formatJSONRPCError(rpcResp.Error)
 	}
 
 	return rpcResp.Result, nil
+}
+
+// CallFor makes a JSON-RPC call to the NEAR node and unmarshals the result into the out parameter.
+func (s *Service) CallFor(ctx context.Context, out any, method string, params any) error {
+	rpcResp, err := s.MakeRPCCall(ctx, method, params)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(rpcResp, out); err != nil {
+		return client.ErrInconsistentResult
+	}
+
+	return nil
+}
+
+func formatJSONRPCError(err *RPCError) error {
+	if err.Name == "HANDLER_ERROR" && err.Cause.Name == "UNKNOWN_BLOCK" {
+		return ErrBlockNotFound
+	}
+
+	return fmt.Errorf("RPC error: %s - %s (cause: %s)",
+		err.Name, err.Message, err.Cause.Name)
 }

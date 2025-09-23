@@ -11,17 +11,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package api
+package spec
 
-// AccountOpts are the options for account calls.
-type AccountOpts struct {
-	Common CommonOpts
-
-	// AccountID is the account ID to query.
-	AccountID string
-	// ContractID is the contract ID use for the query.
-	ContractID string
-
-	// Block is the block at which to query the account.
-	Block *BlockOpts
+// CallFunctionResult represents the result of a call function query.
+type CallFunctionResult struct {
+	BlockHeight int64    `json:"block_height"`
+	BlockHash   string   `json:"block_hash"`
+	Logs        []string `json:"logs"`
+	Result      []byte   `json:"result"`
 }

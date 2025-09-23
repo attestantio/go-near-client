@@ -18,7 +18,7 @@ import "github.com/attestantio/go-near-client/types"
 // Account represents an account overview.
 type Account struct {
 	AccountID       types.AccountID `json:"account_id"`
-	UnstakedBalance types.Balance   `json:"unstaked_balance"`
-	StakedBalance   types.Balance   `json:"staked_balance"`
+	UnstakedBalance *types.Balance  `json:"unstaked_balance"`
+	StakedBalance   *types.Balance  `json:"staked_balance"`
 	CanWithdraw     bool            `json:"can_withdraw"`
 }

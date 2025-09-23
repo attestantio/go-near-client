@@ -77,11 +77,14 @@ func TestService(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := jsonrpc.New(ctx, test.parameters...)
+			s, err := jsonrpc.New(ctx, test.parameters...)
 			if test.err != "" {
 				require.EqualError(t, err, test.err)
 			} else {
 				require.NoError(t, err)
+				genesisHeight, err := s.GenesisBlockHeight(ctx)
+				require.NoError(t, err)
+				require.Equal(t, genesisHeight, int64(9820210))
 			}
 		})
 	}
@@ -97,4 +100,8 @@ func TestInterfaces(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Implements(t, (*client.AccountProvider)(nil), s)
+	assert.Implements(t, (*client.BlockProvider)(nil), s)
+	assert.Implements(t, (*client.StatusProvider)(nil), s)
+	assert.Implements(t, (*client.SyncProvider)(nil), s)
+	assert.Implements(t, (*client.GenesisProvider)(nil), s)
 }

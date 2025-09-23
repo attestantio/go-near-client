@@ -15,7 +15,6 @@ package jsonrpc
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -168,57 +167,6 @@ func (s *Service) periodicUpdateConnectionState(ctx context.Context) {
 			}
 		}
 	}(s, ctx)
-}
-
-// MakeRPCQueryCall makes a JSON-RPC query call to the NEAR node.
-func (s *Service) MakeRPCQueryCall(method, contractID string, args map[string]any) (*RPCResponse, error) {
-	argsBytes, err := json.Marshal(args)
-	if err != nil {
-		return nil, errors.Join(fmt.Errorf("failed to marshal %s args to bytes", method), client.ErrInvalidOptions)
-	}
-	params := map[string]any{
-		"request_type": "call_function",
-		"finality":     "final",
-		"method_name":  method,
-		"args_base64":  base64.StdEncoding.EncodeToString(argsBytes),
-	}
-
-	if contractID != "" {
-		params["account_id"] = contractID
-	}
-
-	data := &RPCResponse{}
-	err = s.client.CallFor(data, "query", params)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to call json rpc"), err)
-	}
-
-	return data, err
-}
-
-// CallQueryFor calls a query method and unmarshals the result into the out parameter.
-func (s *Service) CallQueryFor(out any, method, contractID string, args map[string]any) error {
-	argsBytes, err := json.Marshal(args)
-	if err != nil {
-		return errors.Join(fmt.Errorf("failed to marshal %s args to bytes", method), client.ErrInvalidOptions)
-	}
-	params := map[string]any{
-		"request_type": "call_function",
-		"finality":     "final",
-		"method_name":  method,
-		"args_base64":  base64.StdEncoding.EncodeToString(argsBytes),
-	}
-
-	if contractID != "" {
-		params["account_id"] = contractID
-	}
-
-	err = s.client.CallFor(out, "query", params)
-	if err != nil {
-		return errors.Join(errors.New("failed to call json rpc"), err)
-	}
-
-	return nil
 }
 
 // parseJSONRPCError potentially adds more information to a JSONRPC error.

@@ -47,7 +47,7 @@ func (s *Service) Account(ctx context.Context,
 		"account_id": opts.AccountID,
 	}
 	account := &spec.Account{}
-	err := s.CallQueryFor(account, "get_account", opts.ContractID, args)
+	err := s.CallQueryFor(ctx, account, "get_account", opts.ContractID, opts.Block, args)
 	if err != nil {
 		return nil, parseJSONRPCError(err)
 	}
