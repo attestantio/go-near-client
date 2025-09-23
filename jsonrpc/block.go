@@ -36,6 +36,21 @@ func (s *Service) Block(ctx context.Context,
 		return nil, client.ErrNoOptions
 	}
 
+	// Check only one of the options is set.
+	nparams := 0
+	if opts.Finality != "" {
+		nparams++
+	}
+	if opts.BlockID != 0 {
+		nparams++
+	}
+	if opts.Hash != "" {
+		nparams++
+	}
+	if nparams != 1 {
+		return nil, client.ErrInvalidOptions
+	}
+
 	var args map[string]any
 
 	switch {

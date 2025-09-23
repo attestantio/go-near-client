@@ -56,7 +56,7 @@ func (s *Service) MakeRPCCall(ctx context.Context, method string, params any) (j
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to send request: %s", resp.Status)
+		return nil, fmt.Errorf("json rpc request failed with status code %d", resp.StatusCode)
 	}
 
 	var rpcResp RPCResponse

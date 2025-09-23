@@ -36,6 +36,11 @@ func (s *Service) Chunk(ctx context.Context,
 		return nil, client.ErrNoOptions
 	}
 
+	// Chunk ID should not be provided with block ID or shard ID.
+	if opts.ChunkID != "" && (opts.BlockID != 0 || opts.ShardID != 0) {
+		return nil, client.ErrInvalidOptions
+	}
+
 	var args map[string]any
 
 	switch {
@@ -44,6 +49,7 @@ func (s *Service) Chunk(ctx context.Context,
 			"chunk_id": opts.ChunkID,
 		}
 	case opts.BlockID != 0 && opts.ShardID != 0:
+		// We've already checked that ChunkID is not provided.
 		args = map[string]any{
 			"block_id": opts.BlockID,
 			"shard_id": opts.ShardID,
