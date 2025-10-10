@@ -56,6 +56,7 @@ linters:
     - varnamelen      # Disabled: Variable name length can be too restrictive
     - wrapcheck       # Disabled: Error wrapping patterns can vary
     - wsl             # Disabled: Whitespace rules can conflict with formatters
+    - noinlineerr     # Disabled: Inline error wrapping not always applicable
 
   # Linter-specific settings
   settings:
