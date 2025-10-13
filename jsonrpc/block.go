@@ -45,12 +45,14 @@ func (s *Service) Block(ctx context.Context,
 	args := map[string]any{
 		"finality": opts.Finality,
 	}
+
 	data, err := s.makeRPCCall(ctx, "block", args)
 	if err != nil {
 		return nil, parseJSONRPCError(err)
 	}
 
 	block := &spec.Block{}
+
 	err = json.Unmarshal(data, block)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to unmarshal result to block"), client.ErrInconsistentResult)

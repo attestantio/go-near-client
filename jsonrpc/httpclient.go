@@ -78,6 +78,7 @@ func (s *Service) makeRPCCall(ctx context.Context, method string, params any) (j
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create request")
 	}
+
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := s.httpClient.Do(req)

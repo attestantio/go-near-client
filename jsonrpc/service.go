@@ -90,14 +90,19 @@ func New(ctx context.Context, params ...Parameter) (*Service, error) {
 
 	webSocketAddress := parameters.webSocketAddress
 	if strings.HasPrefix(webSocketAddress, "http://") {
-		webSocketAddress = fmt.Sprintf("ws://%s", webSocketAddress[7:])
+		//nolint:revive
+		webSocketAddress = fmt.Sprintf("ws://%s", webSocketAddress[7:]) // Intentional use of ws instead of wss
 	}
+
 	if strings.HasPrefix(webSocketAddress, "https://") {
 		webSocketAddress = fmt.Sprintf("wss://%s", webSocketAddress[8:])
 	}
+
 	if !strings.HasPrefix(webSocketAddress, "ws") {
-		webSocketAddress = fmt.Sprintf("ws://%s", webSocketAddress)
+		//nolint:revive
+		webSocketAddress = fmt.Sprintf("ws://%s", webSocketAddress) // Intentional use of ws instead of wss
 	}
+
 	log.Trace().Stringer("address", address).Str("web_socket_address", webSocketAddress).Msg("Addresses configured")
 
 	extraHeaders := map[string]string{
@@ -148,51 +153,8 @@ func New(ctx context.Context, params ...Parameter) (*Service, error) {
 	return s, nil
 }
 
-// periodicUpdateConnectionState periodically pings the client to update its active and synced status.
-func (s *Service) periodicUpdateConnectionState(ctx context.Context) {
-	go func(_ *Service, ctx context.Context) {
-		// Refresh every 30 seconds.
-		refreshTicker := time.NewTicker(30 * time.Second)
-		defer refreshTicker.Stop()
-		for {
-			select {
-			case <-refreshTicker.C:
-				return
-				// s.CheckConnectionState(ctx)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}(s, ctx)
-}
-
 type response struct {
 	Result []byte `json:"result"`
-}
-
-func (s *Service) makeRPCQueryCall(method, contractID string, args map[string]any) (*response, error) {
-	argsBytes, err := json.Marshal(args)
-	if err != nil {
-		return nil, errors.Join(fmt.Errorf("failed to marshal %s args to bytes", method), client.ErrInvalidOptions)
-	}
-	params := map[string]any{
-		"request_type": "call_function",
-		"finality":     "final",
-		"method_name":  method,
-		"args_base64":  base64.StdEncoding.EncodeToString(argsBytes),
-	}
-
-	if contractID != "" {
-		params["account_id"] = contractID
-	}
-
-	data := &response{}
-	err = s.client.CallFor(data, "query", params)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to call json rpc"), err)
-	}
-
-	return data, err
 }
 
 // parseJSONRPCError potentially adds more information to a JSONRPC error.
@@ -205,6 +167,7 @@ func parseJSONRPCError(err error) error {
 			if marshalErr != nil {
 				return errors.Join(err, client.ErrUnsupportedFormat)
 			}
+
 			err = fmt.Errorf("%s %s", err.Error(), string(additional))
 		}
 	}
@@ -223,8 +186,10 @@ func (s *Service) CheckConnectionState(ctx context.Context) {
 	wasSynced := s.connectionSynced
 	s.connectionMu.Unlock()
 
-	var active bool
-	var synced bool
+	var (
+		active bool
+		synced bool
+	)
 
 	acquired := s.pingSem.TryAcquire(1)
 	if !acquired {
@@ -235,12 +200,14 @@ func (s *Service) CheckConnectionState(ctx context.Context) {
 		response, err := s.Syncing(ctx, &api.SyncingOpts{})
 		if err != nil {
 			log.Debug().Err(err).Msg("Failed to obtain sync state from node")
+
 			active = false
 			synced = false
 		} else {
 			active = true
 			synced = !response.Data.Syncing
 		}
+
 		s.pingSem.Release(1)
 	}
 
@@ -268,26 +235,6 @@ func (s *Service) CheckConnectionState(ctx context.Context) {
 	}
 }
 
-// fetchStaticValues fetches values that never change.
-// This caches the values, avoiding future API calls.
-func (*Service) fetchStaticValues(_ context.Context) error {
-	return nil
-}
-
-// Name provides the name of the service.
-func (*Service) Name() string {
-	return "json-rpc"
-}
-
-// Address provides the address for the connection.
-func (s *Service) Address() string {
-	return s.address
-}
-
-// close closes the service, freeing up resources.
-func (*Service) close() {
-}
-
 // IsActive returns true if the client is active.
 func (s *Service) IsActive() bool {
 	s.connectionMu.RLock()
@@ -304,6 +251,61 @@ func (s *Service) IsSynced() bool {
 	s.connectionMu.RUnlock()
 
 	return synced
+}
+
+// fetchStaticValues fetches values that never change.
+// This caches the values, avoiding future API calls.
+func (*Service) fetchStaticValues(_ context.Context) error {
+	return nil
+}
+
+// close closes the service, freeing up resources.
+func (*Service) close() {}
+
+// periodicUpdateConnectionState periodically pings the client to update its active and synced status.
+func (s *Service) periodicUpdateConnectionState(ctx context.Context) {
+	go func(_ *Service, ctx context.Context) {
+		// Refresh every 30 seconds.
+		refreshTicker := time.NewTicker(30 * time.Second)
+		defer refreshTicker.Stop()
+
+		for {
+			select {
+			case <-refreshTicker.C:
+				return
+				// s.CheckConnectionState(ctx)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}(s, ctx)
+}
+
+func (s *Service) makeRPCQueryCall(method, contractID string, args map[string]any) (*response, error) {
+	argsBytes, err := json.Marshal(args)
+	if err != nil {
+		return nil, errors.Join(fmt.Errorf("failed to marshal %s args to bytes", method), client.ErrInvalidOptions)
+	}
+
+	params := map[string]any{
+		"request_type": "call_function",
+		"finality":     "final",
+		"method_name":  method,
+		"args_base64":  base64.StdEncoding.EncodeToString(argsBytes),
+	}
+
+	if contractID != "" {
+		params["account_id"] = contractID
+	}
+
+	data := &response{}
+
+	err = s.client.CallFor(data, "query", params)
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to call json rpc"), err)
+	}
+
+	return data, err
 }
 
 // func (s *Service) assertIsActive(ctx context.Context) error {
@@ -328,6 +330,7 @@ func (s *Service) assertIsSynced(ctx context.Context) error {
 	}
 
 	s.CheckConnectionState(ctx)
+
 	active := s.IsActive()
 	if !active {
 		return client.ErrNotActive
@@ -346,6 +349,7 @@ func parseAddress(address string) (*url.URL, *url.URL, error) {
 	if !strings.HasPrefix(address, "http") {
 		address = fmt.Sprintf("http://%s", address)
 	}
+
 	base, err := url.Parse(address)
 	if err != nil {
 		return nil, nil, errors.Join(errors.New("invalid URL"), err)
@@ -360,10 +364,12 @@ func parseAddress(address string) (*url.URL, *url.URL, error) {
 		user := baseAddress.User.Username()
 		baseAddress.User = url.UserPassword(user, "xxxxx")
 	}
+
 	if baseAddress.Path != "" {
 		// Mask the path.
 		baseAddress.Path = "xxxxx"
 	}
+
 	if baseAddress.RawQuery != "" {
 		// Mask all query values.
 		sensitiveRegex := regexp.MustCompile("=([^&]*)(&)?")

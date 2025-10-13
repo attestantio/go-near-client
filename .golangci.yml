@@ -153,6 +153,20 @@ linters:
       - builtin$      # Exclude builtin code
       - examples$     # Exclude example code
 
+    rules:
+      # Suppress revive var-naming warning for generic package name in the types and util packages
+      - path: types/.*.go
+        text: "var-naming: avoid meaningless package names.*"
+      - path: util/.*.go
+        text: "var-naming: avoid meaningless package names.*"
+      # Suppress revive package-directory-mismatch warning for client package
+      # The package name "client" is intentionally shorter than the directory name for API clarity
+      - path: service\.go
+        text: "package-directory-mismatch: package name \"client\" does not match directory name \"go-near-client\".*"
+      - path: errors\.go
+        text: "package-directory-mismatch: package name \"client\" does not match directory name \"go-near-client\".*"
+
+
 # Formatters: Code formatting tools
 formatters:
   enable:

@@ -105,6 +105,7 @@ func StrToBigInt(name string, input string) (*big.Int, error) {
 	if input == "" {
 		return nil, fmt.Errorf("%s missing", name)
 	}
+
 	res, success := new(big.Int).SetString(PreUnmarshalHexString(input), 16)
 	if !success {
 		return nil, fmt.Errorf("%s invalid", name)
@@ -118,6 +119,7 @@ func StrToByteArray(name string, input string) ([]byte, error) {
 	if input == "" {
 		return nil, fmt.Errorf("%s missing", name)
 	}
+
 	res, err := hex.DecodeString(PreUnmarshalHexString(input))
 	if err != nil {
 		return nil, errors.Join(fmt.Errorf("%s invalid", name), err)
@@ -128,16 +130,20 @@ func StrToByteArray(name string, input string) ([]byte, error) {
 
 // StrToTime turns a string in to a time.Time.
 func StrToTime(name string, input string) (time.Time, error) {
-	var res time.Time
-	var err error
+	var (
+		res time.Time
+		err error
+	)
 
 	if input == "" {
 		return res, fmt.Errorf("%s missing", name)
 	}
+
 	val, err := strconv.ParseUint(PreUnmarshalHexString(input), 16, 64)
 	if err != nil {
 		return res, errors.Join(fmt.Errorf("%s invalid", name), err)
 	}
+
 	res = time.Unix(int64(val), 0)
 
 	return res, nil
@@ -145,12 +151,15 @@ func StrToTime(name string, input string) (time.Time, error) {
 
 // StrToUint64 turns a string in to a uint64.
 func StrToUint64(name string, input string) (uint64, error) {
-	var res uint64
-	var err error
+	var (
+		res uint64
+		err error
+	)
 
 	if input == "" {
 		return res, fmt.Errorf("%s missing", name)
 	}
+
 	res, err = strconv.ParseUint(PreUnmarshalHexString(input), 16, 64)
 	if err != nil {
 		return res, errors.Join(fmt.Errorf("%s invalid", name), err)
@@ -161,12 +170,15 @@ func StrToUint64(name string, input string) (uint64, error) {
 
 // StrToUint32 turns a string in to a uint32.
 func StrToUint32(name string, input string) (uint32, error) {
-	var res uint64
-	var err error
+	var (
+		res uint64
+		err error
+	)
 
 	if input == "" {
 		return 0, fmt.Errorf("%s missing", name)
 	}
+
 	res, err = strconv.ParseUint(PreUnmarshalHexString(input), 16, 32)
 	if err != nil {
 		return 0, errors.Join(fmt.Errorf("%s invalid", name), err)

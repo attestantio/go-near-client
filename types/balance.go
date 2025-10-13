@@ -98,6 +98,7 @@ func (b *Balance) UnmarshalJSON(input []byte) error {
 	}
 
 	balanceBigInt := big.NewInt(0)
+
 	_, ok := balanceBigInt.SetString(strings.Trim(string(input), "\""), 10)
 	if !ok {
 		return errors.New("failed to unmarshal balance")
