@@ -59,6 +59,7 @@ func (s *Service) Chunk(ctx context.Context,
 	}
 
 	chunk := &spec.Chunk{}
+
 	err := s.client.CallFor(chunk, "chunk", args)
 	if err != nil {
 		return nil, parseJSONRPCError(err)

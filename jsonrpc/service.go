@@ -120,6 +120,7 @@ func New(ctx context.Context, params ...Parameter) (*Service, error) {
 		if err != nil {
 			return nil, errors.Join(errors.New("failed to fetch genesis block"), err)
 		}
+
 		s.genesisBlockHeight = block.Data.Header.Height
 	}
 
@@ -315,7 +316,7 @@ func (s *Service) assertIsSynced(ctx context.Context) error {
 	return nil
 }
 
-// parseAddress parses the address and returns the base URL and the address URL.
+//nolint:revive
 func parseAddress(address string) (*url.URL, *url.URL, error) {
 	if !strings.HasPrefix(address, "http") {
 		address = fmt.Sprintf("http://%s", address)

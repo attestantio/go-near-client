@@ -36,9 +36,11 @@ func (s *Service) Account(ctx context.Context,
 	if opts == nil {
 		return nil, client.ErrNoOptions
 	}
+
 	if opts.AccountID == "" {
 		return nil, errors.Join(errors.New("no account id specified"), client.ErrInvalidOptions)
 	}
+
 	if opts.ContractID == "" {
 		return nil, errors.Join(errors.New("no contract id specified"), client.ErrInvalidOptions)
 	}
@@ -47,6 +49,7 @@ func (s *Service) Account(ctx context.Context,
 		"account_id": opts.AccountID,
 	}
 	account := &spec.Account{}
+
 	err := s.CallQueryFor(ctx, account, "get_account", opts.ContractID, opts.Block, args)
 	if err != nil {
 		return nil, parseJSONRPCError(err)

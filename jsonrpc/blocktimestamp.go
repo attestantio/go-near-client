@@ -94,6 +94,7 @@ func (s *Service) fetchNextBlock(ctx context.Context,
 
 	fetchedBlockTimestamp := fetchedBlockResponse.Data.Header.Timestamp
 	timePerBlock := (fetchedBlockTimestamp - knownBlockTimestamp) / (fetchedBlockHeight - knownBlockHeight)
+
 	nextBlockHeight := fetchedBlockHeight + (targetTimestamp-fetchedBlockTimestamp)/timePerBlock
 	if nextBlockHeight > latestBlockHeight {
 		return nil, errors.New("timestamp is after latest block time")
@@ -103,6 +104,7 @@ func (s *Service) fetchNextBlock(ctx context.Context,
 		if fetchedBlockHeight == s.genesisBlockHeight {
 			return nil, errors.New("timestamp is before first block time")
 		}
+
 		nextBlockHeight = s.genesisBlockHeight
 	}
 

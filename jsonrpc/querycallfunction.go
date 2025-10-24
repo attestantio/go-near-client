@@ -36,6 +36,7 @@ func (s *Service) MakeRPCQueryCall(
 ) (*spec.CallFunctionResult, error) {
 	data := &spec.CallFunctionResult{}
 	err := s.CallQueryFor(ctx, data, method, contractID, block, args)
+
 	return data, err
 }
 
@@ -51,6 +52,7 @@ func (s *Service) CallQueryFor(ctx context.Context,
 	if err != nil {
 		return errors.Join(fmt.Errorf("failed to marshal %s args to bytes", method), client.ErrInvalidOptions)
 	}
+
 	params := map[string]any{
 		"request_type": "call_function",
 		"account_id":   contractID,
@@ -71,12 +73,15 @@ func (s *Service) CallQueryFor(ctx context.Context,
 			params["block_id"] = block.BlockID
 		case block.Hash != "":
 			params["block_id"] = block.Hash
+		default:
+			return client.ErrInvalidOptions
 		}
 	} else {
 		params["finality"] = "final"
 	}
 
 	response := &spec.CallFunctionResult{}
+
 	err = s.CallFor(ctx, response, "query", params)
 	if err != nil {
 		return errors.Join(errors.New("failed to call json rpc"), err)

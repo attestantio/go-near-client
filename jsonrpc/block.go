@@ -60,6 +60,7 @@ func (s *Service) Block(ctx context.Context,
 	}
 
 	block := &spec.Block{}
+
 	err := s.CallFor(ctx, block, "block", args)
 	if err != nil {
 		return nil, parseJSONRPCError(err)
@@ -78,12 +79,15 @@ func validateBlockOpts(opts *api.BlockOpts) error {
 	if opts.Finality != "" {
 		nparams++
 	}
+
 	if opts.BlockID != 0 {
 		nparams++
 	}
+
 	if opts.Hash != "" {
 		nparams++
 	}
+
 	if nparams != 1 {
 		return client.ErrInvalidOptions
 	}
