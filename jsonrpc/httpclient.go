@@ -21,42 +21,12 @@ import (
 	"net/http"
 	"time"
 
+	client "github.com/attestantio/go-near-client"
 	"github.com/pkg/errors"
 )
 
-// RPCRequest represents a JSON-RPC request.
-type RPCRequest struct {
-	Version string `json:"jsonrpc"`
-	Method  string `json:"method"`
-	Params  any    `json:"params"`
-	ID      string `json:"id"`
-}
-
-// RPCResponse represents a JSON-RPC response.
-type RPCResponse struct {
-	Version string          `json:"jsonrpc"`
-	Result  json.RawMessage `json:"result,omitempty"`
-	Error   *RPCError       `json:"error,omitempty"`
-	ID      string          `json:"id"`
-}
-
-// RPCError represents a JSON-RPC error.
-type RPCError struct {
-	Name    string          `json:"name"`
-	Cause   Cause           `json:"cause"`
-	Code    int             `json:"code"`
-	Data    json.RawMessage `json:"data"`
-	Message string          `json:"message"`
-}
-
-// Cause represents the cause of an RPCError.
-type Cause struct {
-	Info json.RawMessage `json:"info"`
-	Name string          `json:"name"`
-}
-
-// makeRPCCall makes a JSON-RPC call to the NEAR node.
-func (s *Service) makeRPCCall(ctx context.Context, method string, params any) (json.RawMessage, error) {
+// MakeRPCCall makes a JSON-RPC call to the NEAR node.
+func (s *Service) MakeRPCCall(ctx context.Context, method string, params any) (json.RawMessage, error) {
 	// If params is a string (base64 tx), wrap it in an array
 	if base64Str, ok := params.(string); ok {
 		params = []string{base64Str}
@@ -88,13 +58,45 @@ func (s *Service) makeRPCCall(ctx context.Context, method string, params any) (j
 
 	var rpcResp RPCResponse
 	if err := json.NewDecoder(resp.Body).Decode(&rpcResp); err != nil {
+		// The RPC didnot return a valid JSON response. Just return the status code.
+		if resp.StatusCode != http.StatusOK {
+			s.log.Debug().
+				Int("status_code", resp.StatusCode).
+				Str("method", method).
+				Interface("params", params).Msg("json rpc request failed")
+
+			return nil, fmt.Errorf("json rpc request failed with status code %d", resp.StatusCode)
+		}
+
 		return nil, errors.Wrap(err, "failed to decode response")
 	}
 
 	if rpcResp.Error != nil {
-		return nil, fmt.Errorf("RPC error: %s - %s (cause: %s)",
-			rpcResp.Error.Name, rpcResp.Error.Message, rpcResp.Error.Cause.Name)
+		return nil, formatJSONRPCError(rpcResp.Error)
 	}
 
 	return rpcResp.Result, nil
+}
+
+// CallFor makes a JSON-RPC call to the NEAR node and unmarshals the result into the out parameter.
+func (s *Service) CallFor(ctx context.Context, out any, method string, params any) error {
+	rpcResp, err := s.MakeRPCCall(ctx, method, params)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(rpcResp, out); err != nil {
+		return client.ErrInconsistentResult
+	}
+
+	return nil
+}
+
+func formatJSONRPCError(err *RPCError) error {
+	if err.Name == "HANDLER_ERROR" && err.Cause.Name == "UNKNOWN_BLOCK" {
+		return ErrBlockNotFound
+	}
+
+	return fmt.Errorf("RPC error: %s - %s (cause: %s)",
+		err.Name, err.Message, err.Cause.Name)
 }

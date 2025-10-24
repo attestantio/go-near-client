@@ -16,24 +16,19 @@ package jsonrpc
 import (
 	"context"
 
-	client "github.com/attestantio/go-near-client"
 	"github.com/attestantio/go-near-client/api"
 	"github.com/attestantio/go-near-client/spec"
 )
 
 // Status returns the status.
 func (s *Service) Status(ctx context.Context,
-	opts *api.StatusOpts,
+	_ *api.StatusOpts,
 ) (
 	*api.Response[*spec.Status],
 	error,
 ) {
 	if err := s.assertIsSynced(ctx); err != nil {
 		return nil, err
-	}
-
-	if opts == nil {
-		return nil, client.ErrNoOptions
 	}
 
 	status := &spec.Status{}

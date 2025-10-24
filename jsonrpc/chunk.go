@@ -15,18 +15,17 @@ package jsonrpc
 
 import (
 	"context"
-	"errors"
 
 	client "github.com/attestantio/go-near-client"
 	"github.com/attestantio/go-near-client/api"
 	"github.com/attestantio/go-near-client/spec"
 )
 
-// Account retrieves account info from the client.
-func (s *Service) Account(ctx context.Context,
-	opts *api.AccountOpts,
+// Chunk returns the chunk.
+func (s *Service) Chunk(ctx context.Context,
+	opts *api.ChunkOpts,
 ) (
-	*api.Response[*spec.Account],
+	*api.Response[*spec.Chunk],
 	error,
 ) {
 	if err := s.assertIsSynced(ctx); err != nil {
@@ -37,26 +36,37 @@ func (s *Service) Account(ctx context.Context,
 		return nil, client.ErrNoOptions
 	}
 
-	if opts.AccountID == "" {
-		return nil, errors.Join(errors.New("no account id specified"), client.ErrInvalidOptions)
+	// Chunk ID should not be provided with block ID or shard ID.
+	if opts.ChunkID != "" && (opts.BlockID != 0 || opts.ShardID != nil) {
+		return nil, client.ErrInvalidOptions
 	}
 
-	if opts.ContractID == "" {
-		return nil, errors.Join(errors.New("no contract id specified"), client.ErrInvalidOptions)
+	var args map[string]any
+
+	switch {
+	case opts.ChunkID != "":
+		args = map[string]any{
+			"chunk_id": opts.ChunkID,
+		}
+	case opts.BlockID != 0 && opts.ShardID != nil:
+		// We've already checked that ChunkID is not provided.
+		args = map[string]any{
+			"block_id": opts.BlockID,
+			"shard_id": opts.ShardID,
+		}
+	default:
+		return nil, client.ErrInvalidOptions
 	}
 
-	args := map[string]any{
-		"account_id": opts.AccountID,
-	}
-	account := &spec.Account{}
+	chunk := &spec.Chunk{}
 
-	err := s.CallQueryFor(ctx, account, "get_account", opts.ContractID, opts.Block, args)
+	err := s.client.CallFor(chunk, "chunk", args)
 	if err != nil {
 		return nil, parseJSONRPCError(err)
 	}
 
-	return &api.Response[*spec.Account]{
-		Data:     account,
+	return &api.Response[*spec.Chunk]{
+		Data:     chunk,
 		Metadata: map[string]any{},
 	}, nil
 }

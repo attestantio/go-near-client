@@ -15,6 +15,7 @@ package client
 
 import (
 	"context"
+	"time"
 
 	"github.com/attestantio/go-near-client/api"
 	"github.com/attestantio/go-near-client/spec"
@@ -49,6 +50,14 @@ type BlockProvider interface {
 		*api.Response[*spec.Block],
 		error,
 	)
+
+	// BlockAtTimestamp returns the block at a given timestamp.
+	BlockAtTimestamp(ctx context.Context,
+		timestamp time.Time,
+	) (
+		*api.Response[*spec.Block],
+		error,
+	)
 }
 
 // StatusProvider is the interface for providing status.
@@ -71,4 +80,10 @@ type SyncProvider interface {
 		*api.Response[*spec.SyncInfo],
 		error,
 	)
+}
+
+// GenesisProvider is the interface for providing genesis block details.
+type GenesisProvider interface {
+	// Genesis returns the genesis block.
+	GenesisBlockHeight(ctx context.Context) (int64, error)
 }

@@ -13,15 +13,14 @@
 
 package api
 
-// AccountOpts are the options for account calls.
-type AccountOpts struct {
+// ChunkOpts are the options for chunk calls.
+type ChunkOpts struct {
 	Common CommonOpts
 
-	// AccountID is the account ID to query.
-	AccountID string
-	// ContractID is the contract ID use for the query.
-	ContractID string
-
-	// Block is the block at which to query the account.
-	Block *BlockOpts
+	// ChunkID gets a chunk by chunk ID.
+	ChunkID string
+	// BlockID gets a chunk by block ID (used with ShardID).
+	BlockID uint64
+	// ShardID gets a chunk by shard ID (used with BlockID).
+	ShardID *uint64
 }
