@@ -152,24 +152,6 @@ func New(ctx context.Context, params ...Parameter) (*Service, error) {
 	return s, nil
 }
 
-// periodicUpdateConnectionState periodically pings the client to update its active and synced status.
-func (s *Service) periodicUpdateConnectionState(ctx context.Context) {
-	go func(_ *Service, ctx context.Context) {
-		// Refresh every 30 seconds.
-		refreshTicker := time.NewTicker(30 * time.Second)
-		defer refreshTicker.Stop()
-		for {
-			select {
-			case <-refreshTicker.C:
-				return
-				// s.CheckConnectionState(ctx)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}(s, ctx)
-}
-
 // parseJSONRPCError potentially adds more information to a JSONRPC error.
 func parseJSONRPCError(err error) error {
 	var jsonrpcErr *jsonrpc.RPCError
@@ -199,10 +181,7 @@ func (s *Service) CheckConnectionState(ctx context.Context) {
 	wasSynced := s.connectionSynced
 	s.connectionMu.Unlock()
 
-	var (
-		active bool
-		synced bool
-	)
+	var active, synced bool
 
 	acquired := s.pingSem.TryAcquire(1)
 	if !acquired {
@@ -248,12 +227,6 @@ func (s *Service) CheckConnectionState(ctx context.Context) {
 	}
 }
 
-// fetchStaticValues fetches values that never change.
-// This caches the values, avoiding future API calls.
-func (*Service) fetchStaticValues(_ context.Context) error {
-	return nil
-}
-
 // Name provides the name of the service.
 func (*Service) Name() string {
 	return "jsonrpc"
@@ -262,10 +235,6 @@ func (*Service) Name() string {
 // Address provides the address for the connection.
 func (s *Service) Address() string {
 	return s.address
-}
-
-// close closes the service, freeing up resources.
-func (*Service) close() {
 }
 
 // IsActive returns true if the client is active.
@@ -286,15 +255,6 @@ func (s *Service) IsSynced() bool {
 	return synced
 }
 
-// fetchStaticValues fetches values that never change.
-// This caches the values, avoiding future API calls.
-func (*Service) fetchStaticValues(_ context.Context) error {
-	return nil
-}
-
-// close closes the service, freeing up resources.
-func (*Service) close() {}
-
 // periodicUpdateConnectionState periodically pings the client to update its active and synced status.
 func (s *Service) periodicUpdateConnectionState(ctx context.Context) {
 	go func(_ *Service, ctx context.Context) {
@@ -314,31 +274,14 @@ func (s *Service) periodicUpdateConnectionState(ctx context.Context) {
 	}(s, ctx)
 }
 
-func (s *Service) makeRPCQueryCall(method, contractID string, args map[string]any) (*response, error) {
-	argsBytes, err := json.Marshal(args)
-	if err != nil {
-		return nil, errors.Join(fmt.Errorf("failed to marshal %s args to bytes", method), client.ErrInvalidOptions)
-	}
+// fetchStaticValues fetches values that never change.
+// This caches the values, avoiding future API calls.
+func (*Service) fetchStaticValues(_ context.Context) error {
+	return nil
+}
 
-	params := map[string]any{
-		"request_type": "call_function",
-		"finality":     "final",
-		"method_name":  method,
-		"args_base64":  base64.StdEncoding.EncodeToString(argsBytes),
-	}
-
-	if contractID != "" {
-		params["account_id"] = contractID
-	}
-
-	data := &response{}
-
-	err = s.client.CallFor(data, "query", params)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to call json rpc"), err)
-	}
-
-	return data, err
+// close closes the service, freeing up resources.
+func (*Service) close() {
 }
 
 // func (s *Service) assertIsActive(ctx context.Context) error {

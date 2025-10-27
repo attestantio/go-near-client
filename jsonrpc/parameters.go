@@ -101,10 +101,6 @@ func parseAndCheckParameters(params ...Parameter) (*parameters, error) {
 		return nil, errors.New("no address specified")
 	}
 
-	if parameters.webSocketAddress == "" {
-		parameters.webSocketAddress = parameters.address
-	}
-
 	if parameters.timeout == 0 {
 		return nil, errors.New("no timeout specified")
 	}
