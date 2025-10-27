@@ -15,7 +15,6 @@ package jsonrpc
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,13 +36,13 @@ import (
 
 // Service is an NEAR client service.
 type Service struct {
-	log              zerolog.Logger
-	base             *url.URL
-	address          string
-	webSocketAddress string
-	client           jsonrpc.RPCClient
-	httpClient       *http.Client
-	timeout          time.Duration
+	log                zerolog.Logger
+	base               *url.URL
+	address            string
+	client             jsonrpc.RPCClient
+	httpClient         *http.Client
+	timeout            time.Duration
+	genesisBlockHeight int64
 	// Endpoint support.
 	pingSem          *semaphore.Weighted
 	connectionMu     sync.RWMutex
@@ -88,22 +87,7 @@ func New(ctx context.Context, params ...Parameter) (*Service, error) {
 		return nil, err
 	}
 
-	webSocketAddress := parameters.webSocketAddress
-	if strings.HasPrefix(webSocketAddress, "http://") {
-		//nolint:revive
-		webSocketAddress = fmt.Sprintf("ws://%s", webSocketAddress[7:]) // Intentional use of ws instead of wss
-	}
-
-	if strings.HasPrefix(webSocketAddress, "https://") {
-		webSocketAddress = fmt.Sprintf("wss://%s", webSocketAddress[8:])
-	}
-
-	if !strings.HasPrefix(webSocketAddress, "ws") {
-		//nolint:revive
-		webSocketAddress = fmt.Sprintf("ws://%s", webSocketAddress) // Intentional use of ws instead of wss
-	}
-
-	log.Trace().Stringer("address", address).Str("web_socket_address", webSocketAddress).Msg("Addresses configured")
+	log.Trace().Stringer("address", address).Msg("Address configured")
 
 	extraHeaders := map[string]string{
 		"User-Agent": "go-near-client/0.1.0",
@@ -115,18 +99,33 @@ func New(ctx context.Context, params ...Parameter) (*Service, error) {
 	})
 
 	s := &Service{
-		log:              log,
-		base:             base,
-		client:           rpcClient,
-		httpClient:       httpClient,
-		address:          address.String(),
-		webSocketAddress: webSocketAddress,
-		timeout:          parameters.timeout,
-		pingSem:          semaphore.NewWeighted(1),
+		log:                log,
+		base:               base,
+		client:             rpcClient,
+		httpClient:         httpClient,
+		address:            address.String(),
+		timeout:            parameters.timeout,
+		genesisBlockHeight: parameters.genesisBlockHeight,
+		pingSem:            semaphore.NewWeighted(1),
+	}
+
+	if s.genesisBlockHeight < 0 {
+		// fetch genesis block height from the node
+		status, err := s.Status(ctx, &api.StatusOpts{})
+		if err != nil {
+			return nil, errors.Join(errors.New("failed to fetch node status"), err)
+		}
+
+		block, err := s.Block(ctx, &api.BlockOpts{Hash: status.Data.GenesisHash})
+		if err != nil {
+			return nil, errors.Join(errors.New("failed to fetch genesis block"), err)
+		}
+
+		s.genesisBlockHeight = block.Data.Header.Height
 	}
 
 	// Ping the client to see if it is ready to serve requests.
-	// s.CheckConnectionState(ctx)
+	s.CheckConnectionState(ctx)
 	active := s.IsActive()
 
 	if !active && !parameters.allowDelayedStart {
@@ -153,8 +152,22 @@ func New(ctx context.Context, params ...Parameter) (*Service, error) {
 	return s, nil
 }
 
-type response struct {
-	Result []byte `json:"result"`
+// periodicUpdateConnectionState periodically pings the client to update its active and synced status.
+func (s *Service) periodicUpdateConnectionState(ctx context.Context) {
+	go func(_ *Service, ctx context.Context) {
+		// Refresh every 30 seconds.
+		refreshTicker := time.NewTicker(30 * time.Second)
+		defer refreshTicker.Stop()
+		for {
+			select {
+			case <-refreshTicker.C:
+				return
+				// s.CheckConnectionState(ctx)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}(s, ctx)
 }
 
 // parseJSONRPCError potentially adds more information to a JSONRPC error.
@@ -233,6 +246,26 @@ func (s *Service) CheckConnectionState(ctx context.Context) {
 	default:
 		s.monitorState("inactive")
 	}
+}
+
+// fetchStaticValues fetches values that never change.
+// This caches the values, avoiding future API calls.
+func (*Service) fetchStaticValues(_ context.Context) error {
+	return nil
+}
+
+// Name provides the name of the service.
+func (*Service) Name() string {
+	return "jsonrpc"
+}
+
+// Address provides the address for the connection.
+func (s *Service) Address() string {
+	return s.address
+}
+
+// close closes the service, freeing up resources.
+func (*Service) close() {
 }
 
 // IsActive returns true if the client is active.
@@ -364,12 +397,10 @@ func parseAddress(address string) (*url.URL, *url.URL, error) {
 		user := baseAddress.User.Username()
 		baseAddress.User = url.UserPassword(user, "xxxxx")
 	}
-
-	if baseAddress.Path != "" {
-		// Mask the path.
-		baseAddress.Path = "xxxxx"
-	}
-
+	// if baseAddress.Path != "" {
+	// 	// Mask the path.
+	// 	baseAddress.Path = "xxxxx"
+	// }
 	if baseAddress.RawQuery != "" {
 		// Mask all query values.
 		sensitiveRegex := regexp.MustCompile("=([^&]*)(&)?")

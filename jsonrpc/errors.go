@@ -11,17 +11,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package api
+package jsonrpc
 
-// AccountOpts are the options for account calls.
-type AccountOpts struct {
-	Common CommonOpts
+import "errors"
 
-	// AccountID is the account ID to query.
-	AccountID string
-	// ContractID is the contract ID use for the query.
-	ContractID string
-
-	// Block is the block at which to query the account.
-	Block *BlockOpts
-}
+// ErrBlockNotFound is returned when a block is not found.
+var ErrBlockNotFound = errors.New("block not found")

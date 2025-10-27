@@ -13,7 +13,18 @@
 
 package spec
 
-// SyncInfo represents a sync status.
+import "time"
+
+// SyncInfo contains information about the node's synchronization status.
 type SyncInfo struct {
-	Syncing bool `json:"syncing"`
+	EarliestBlockHash   string    `json:"earliest_block_hash"`
+	EarliestBlockHeight int64     `json:"earliest_block_height"`
+	EarliestBlockTime   time.Time `json:"earliest_block_time"`
+	EpochID             string    `json:"epoch_id"`
+	EpochStartHeight    int64     `json:"epoch_start_height"`
+	LatestBlockHash     string    `json:"latest_block_hash"`
+	LatestBlockHeight   int64     `json:"latest_block_height"`
+	LatestBlockTime     time.Time `json:"latest_block_time"`
+	LatestStateRoot     string    `json:"latest_state_root"`
+	Syncing             bool      `json:"syncing"`
 }

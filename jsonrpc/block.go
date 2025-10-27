@@ -15,8 +15,6 @@ package jsonrpc
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 
 	client "github.com/attestantio/go-near-client"
 	"github.com/attestantio/go-near-client/api"
@@ -38,28 +36,61 @@ func (s *Service) Block(ctx context.Context,
 		return nil, client.ErrNoOptions
 	}
 
-	if opts.Finality == "" {
+	if err := validateBlockOpts(opts); err != nil {
+		return nil, err
+	}
+
+	var args map[string]any
+
+	switch {
+	case opts.Finality != "":
+		args = map[string]any{
+			"finality": opts.Finality,
+		}
+	case opts.BlockID != 0:
+		args = map[string]any{
+			"block_id": opts.BlockID,
+		}
+	case opts.Hash != "":
+		args = map[string]any{
+			"block_id": opts.Hash,
+		}
+	default:
 		return nil, client.ErrInvalidOptions
-	}
-
-	args := map[string]any{
-		"finality": opts.Finality,
-	}
-
-	data, err := s.makeRPCCall(ctx, "block", args)
-	if err != nil {
-		return nil, parseJSONRPCError(err)
 	}
 
 	block := &spec.Block{}
 
-	err = json.Unmarshal(data, block)
+	err := s.CallFor(ctx, block, "block", args)
 	if err != nil {
-		return nil, errors.Join(errors.New("failed to unmarshal result to block"), client.ErrInconsistentResult)
+		return nil, parseJSONRPCError(err)
 	}
 
 	return &api.Response[*spec.Block]{
 		Data:     block,
 		Metadata: map[string]any{},
 	}, nil
+}
+
+// validateBlockOpts validates the block options.
+func validateBlockOpts(opts *api.BlockOpts) error {
+	// Check only one of the options is set.
+	nparams := 0
+	if opts.Finality != "" {
+		nparams++
+	}
+
+	if opts.BlockID != 0 {
+		nparams++
+	}
+
+	if opts.Hash != "" {
+		nparams++
+	}
+
+	if nparams != 1 {
+		return client.ErrInvalidOptions
+	}
+
+	return nil
 }
