@@ -112,6 +112,7 @@ func main() {
 ## Maintainers
 
 Chris Berry: [@bez625](https://github.com/Bez625).
+Ahmed Mohamed: [@ahmohamed](https://github.com/ahmohamed).
 
 ## Contribute
 
