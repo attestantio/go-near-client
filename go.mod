@@ -1,8 +1,8 @@
 module github.com/attestantio/go-near-client
 
-go 1.23.0
+go 1.25
 
-toolchain go1.23.2
+toolchain go1.25.2
 
 require (
 	github.com/pkg/errors v0.9.1

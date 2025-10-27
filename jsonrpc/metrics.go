@@ -28,10 +28,12 @@ func registerMetrics(ctx context.Context, monitor metrics.Service) error {
 		// Already registered.
 		return nil
 	}
+
 	if monitor == nil {
 		// No monitor.
 		return nil
 	}
+
 	if monitor.Presenter() == "prometheus" {
 		return registerPrometheusMetrics(ctx)
 	}
@@ -67,7 +69,8 @@ func (s *Service) monitorState(state string) {
 		stateMetric.WithLabelValues(s.address, "synced").Set(0)
 		stateMetric.WithLabelValues(s.address, "active").Set(1)
 		stateMetric.WithLabelValues(s.address, "inactive").Set(0)
-	case "inactive":
+	default:
+		// Treat unknown state and "inactive" as inactive for safety.
 		stateMetric.WithLabelValues(s.address, "synced").Set(0)
 		stateMetric.WithLabelValues(s.address, "active").Set(0)
 		stateMetric.WithLabelValues(s.address, "inactive").Set(1)

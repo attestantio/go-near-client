@@ -32,6 +32,7 @@ func (s *Service) Status(ctx context.Context,
 	}
 
 	status := &spec.Status{}
+
 	err := s.client.CallFor(status, "status", nil)
 	if err != nil {
 		return nil, parseJSONRPCError(err)
