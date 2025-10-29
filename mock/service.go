@@ -16,6 +16,7 @@ package mock
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -74,9 +75,11 @@ func (s *Service) SetBlock(height int64, hash string, finality string, block *sp
 	if height > 0 {
 		s.blocks[fmt.Sprintf("height:%d", height)] = block
 	}
+
 	if hash != "" {
 		s.blocks[fmt.Sprintf("hash:%s", hash)] = block
 	}
+
 	if finality != "" {
 		s.blocks[fmt.Sprintf("finality:%s", finality)] = block
 	}
@@ -93,6 +96,7 @@ func (s *Service) SetChunk(chunkID string, blockID uint64, shardID *uint64, chun
 	if chunkID != "" {
 		s.chunks[fmt.Sprintf("chunkid:%s", chunkID)] = chunk
 	}
+
 	if blockID > 0 && shardID != nil {
 		s.chunks[fmt.Sprintf("block:%d:shard:%d", blockID, *shardID)] = chunk
 	}
@@ -122,17 +126,21 @@ func (s *Service) SetGenesisBlockHeight(height int64) {
 // Account retrieves account info from the mock.
 func (s *Service) Account(_ context.Context, opts *api.AccountOpts) (*api.Response[*spec.Account], error) {
 	if opts == nil {
-		return nil, fmt.Errorf("no options provided")
+		return nil, errors.New("no options provided")
 	}
 
 	blockID := "final"
+
 	if opts.Block != nil {
-		if opts.Block.Finality != "" {
+		switch {
+		case opts.Block.Finality != "":
 			blockID = opts.Block.Finality
-		} else if opts.Block.BlockID != 0 {
+		case opts.Block.BlockID != 0:
 			blockID = fmt.Sprintf("%d", opts.Block.BlockID)
-		} else if opts.Block.Hash != "" {
+		case opts.Block.Hash != "":
 			blockID = opts.Block.Hash
+		default:
+			// blockID remains "final"
 		}
 	}
 
@@ -140,8 +148,9 @@ func (s *Service) Account(_ context.Context, opts *api.AccountOpts) (*api.Respon
 	if data, exists := s.accounts[key]; exists {
 		account, ok := data.(*spec.Account)
 		if !ok {
-			return nil, fmt.Errorf("account data is not of type *spec.Account")
+			return nil, errors.New("account data is not of type *spec.Account")
 		}
+
 		return &api.Response[*spec.Account]{
 			Data:     account,
 			Metadata: map[string]any{},
@@ -154,10 +163,11 @@ func (s *Service) Account(_ context.Context, opts *api.AccountOpts) (*api.Respon
 // Block returns the block.
 func (s *Service) Block(_ context.Context, opts *api.BlockOpts) (*api.Response[*spec.Block], error) {
 	if opts == nil {
-		return nil, fmt.Errorf("no options provided")
+		return nil, errors.New("no options provided")
 	}
 
 	var key string
+
 	switch {
 	case opts.Finality != "":
 		key = fmt.Sprintf("finality:%s", opts.Finality)
@@ -166,7 +176,7 @@ func (s *Service) Block(_ context.Context, opts *api.BlockOpts) (*api.Response[*
 	case opts.Hash != "":
 		key = fmt.Sprintf("hash:%s", opts.Hash)
 	default:
-		return nil, fmt.Errorf("invalid block options")
+		return nil, errors.New("invalid block options")
 	}
 
 	if block, exists := s.blocks[key]; exists {
@@ -183,6 +193,7 @@ func (s *Service) Block(_ context.Context, opts *api.BlockOpts) (*api.Response[*
 func (s *Service) BlockAtTimestamp(_ context.Context, timestamp time.Time) (*api.Response[*spec.Block], error) {
 	// Simple mock implementation - find the block with the closest timestamp
 	var closestBlock *spec.Block
+
 	var closestDiff int64 = 1<<63 - 1
 
 	for _, block := range s.blocks {
@@ -208,7 +219,7 @@ func (s *Service) BlockAtTimestamp(_ context.Context, timestamp time.Time) (*api
 // Status returns the status.
 func (s *Service) Status(_ context.Context, _ *api.StatusOpts) (*api.Response[*spec.Status], error) {
 	if s.status == nil {
-		return nil, fmt.Errorf("status not set in mock")
+		return nil, errors.New("status not set in mock")
 	}
 
 	return &api.Response[*spec.Status]{
@@ -220,11 +231,11 @@ func (s *Service) Status(_ context.Context, _ *api.StatusOpts) (*api.Response[*s
 // Syncing returns the sync info.
 func (s *Service) Syncing(_ context.Context, opts *api.SyncingOpts) (*api.Response[*spec.SyncInfo], error) {
 	if opts == nil {
-		return nil, fmt.Errorf("no options provided")
+		return nil, errors.New("no options provided")
 	}
 
 	if s.syncInfo == nil {
-		return nil, fmt.Errorf("sync info not set in mock")
+		return nil, errors.New("sync info not set in mock")
 	}
 
 	return &api.Response[*spec.SyncInfo]{
@@ -241,17 +252,18 @@ func (s *Service) GenesisBlockHeight(_ context.Context) (int64, error) {
 // Chunk returns the chunk.
 func (s *Service) Chunk(_ context.Context, opts *api.ChunkOpts) (*api.Response[*spec.Chunk], error) {
 	if opts == nil {
-		return nil, fmt.Errorf("no options provided")
+		return nil, errors.New("no options provided")
 	}
 
 	var key string
+
 	switch {
 	case opts.ChunkID != "":
 		key = fmt.Sprintf("chunkid:%s", opts.ChunkID)
 	case opts.BlockID > 0 && opts.ShardID != nil:
 		key = fmt.Sprintf("block:%d:shard:%d", opts.BlockID, *opts.ShardID)
 	default:
-		return nil, fmt.Errorf("invalid chunk options")
+		return nil, errors.New("invalid chunk options")
 	}
 
 	if chunk, exists := s.chunks[key]; exists {
@@ -273,18 +285,23 @@ func (s *Service) CallQueryFor(_ context.Context,
 	args map[string]any,
 ) error {
 	blockID := "final"
+
 	if block != nil {
-		if block.Finality != "" {
+		switch {
+		case block.Finality != "":
 			blockID = block.Finality
-		} else if block.BlockID != 0 {
+		case block.BlockID != 0:
 			blockID = fmt.Sprintf("%d", block.BlockID)
-		} else if block.Hash != "" {
+		case block.Hash != "":
 			blockID = block.Hash
+		default:
+			// blockID remains "final"
 		}
 	}
 
 	// Extract account_id from args if present
 	accountID := ""
+
 	if args != nil {
 		if id, ok := args["account_id"].(string); ok {
 			accountID = id
@@ -298,9 +315,11 @@ func (s *Service) CallQueryFor(_ context.Context,
 		if err != nil {
 			return fmt.Errorf("failed to marshal mock data: %w", err)
 		}
+
 		if err := json.Unmarshal(jsonData, out); err != nil {
 			return fmt.Errorf("failed to unmarshal to output type: %w", err)
 		}
+
 		return nil
 	}
 
@@ -309,7 +328,7 @@ func (s *Service) CallQueryFor(_ context.Context,
 
 // MakeRPCQueryCall makes a JSON-RPC query call to the NEAR node.
 func (s *Service) MakeRPCQueryCall(
-	ctx context.Context,
+	_ context.Context,
 	method string,
 	contractID string,
 	block *api.BlockOpts,
@@ -320,19 +339,23 @@ func (s *Service) MakeRPCQueryCall(
 	blockHash := ""
 
 	if block != nil {
-		if block.Finality != "" {
+		switch {
+		case block.Finality != "":
 			blockID = block.Finality
-		} else if block.BlockID != 0 {
+		case block.BlockID != 0:
 			blockID = fmt.Sprintf("%d", block.BlockID)
-			blockHeight = int64(block.BlockID)
-		} else if block.Hash != "" {
+			blockHeight = int64(block.BlockID) //nolint:unconvert // Conversion from uint64 to int64 is necessary
+		case block.Hash != "":
 			blockID = block.Hash
 			blockHash = block.Hash
+		default:
+			// blockID remains "final"
 		}
 	}
 
 	// Extract account_id from args if present
 	accountID := ""
+
 	if args != nil {
 		if id, ok := args["account_id"].(string); ok {
 			accountID = id
