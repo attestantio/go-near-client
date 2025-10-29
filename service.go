@@ -84,6 +84,37 @@ type SyncProvider interface {
 
 // GenesisProvider is the interface for providing genesis block details.
 type GenesisProvider interface {
-	// Genesis returns the genesis block.
+	// GenesisBlockHeight returns the height of the genesis block.
 	GenesisBlockHeight(ctx context.Context) (int64, error)
+}
+
+// ChunkProvider is the interface for providing chunk details.
+type ChunkProvider interface {
+	// Chunk returns the chunk.
+	Chunk(ctx context.Context,
+		opts *api.ChunkOpts,
+	) (
+		*api.Response[*spec.Chunk],
+		error,
+	)
+}
+
+// QueryProvider is the interface for querying contract state.
+type QueryProvider interface {
+	// CallQueryFor calls a query method and unmarshals the result into the out parameter.
+	CallQueryFor(ctx context.Context,
+		out any,
+		method string,
+		contractID string,
+		block *api.BlockOpts,
+		args map[string]any,
+	) error
+
+	// MakeRPCQueryCall makes a JSON-RPC query call to the NEAR node.
+	MakeRPCQueryCall(ctx context.Context,
+		method string,
+		contractID string,
+		block *api.BlockOpts,
+		args map[string]any,
+	) (*spec.CallFunctionResult, error)
 }
