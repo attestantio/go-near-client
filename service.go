@@ -118,3 +118,14 @@ type QueryProvider interface {
 		args map[string]any,
 	) (*spec.CallFunctionResult, error)
 }
+
+// ValidatorsProvider is the interface for providing validators details.
+type ValidatorsProvider interface {
+	// Validators returns the validators.
+	Validators(ctx context.Context,
+		opts *api.ValidatorsOpts,
+	) (
+		*api.Response[*spec.Validators],
+		error,
+	)
+}
