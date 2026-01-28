@@ -38,6 +38,7 @@ func TestMockImplementsInterfaces(t *testing.T) {
 	assert.Implements(t, (*client.GenesisProvider)(nil), s, "mock should implement GenesisProvider")
 	assert.Implements(t, (*client.ChunkProvider)(nil), s, "mock should implement ChunkProvider")
 	assert.Implements(t, (*client.QueryProvider)(nil), s, "mock should implement QueryProvider")
+	assert.Implements(t, (*client.ValidatorsProvider)(nil), s, "mock should implement ValidatorsProvider")
 }
 
 // TestJSONRPCImplementsInterfaces verifies that the jsonrpc service implements all required interfaces.

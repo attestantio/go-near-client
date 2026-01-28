@@ -90,7 +90,7 @@ func New(ctx context.Context, params ...Parameter) (*Service, error) {
 	log.Trace().Stringer("address", address).Msg("Address configured")
 
 	extraHeaders := map[string]string{
-		"User-Agent": "go-near-client/0.1.1",
+		"User-Agent": "go-near-client/0.1.2",
 	}
 
 	rpcClient := jsonrpc.NewClientWithOpts(base.String(), &jsonrpc.RPCClientOpts{

@@ -380,3 +380,16 @@ func (s *Service) MakeRPCQueryCall(
 
 	return nil, fmt.Errorf("query result not found: method=%s, contract=%s, key=%s", method, contractID, key)
 }
+
+// Validators returns the validators.
+func (*Service) Validators(_ context.Context,
+	_ *api.ValidatorsOpts,
+) (
+	*api.Response[*spec.Validators],
+	error,
+) {
+	return &api.Response[*spec.Validators]{
+		Data:     &spec.Validators{},
+		Metadata: map[string]any{},
+	}, nil
+}
